@@ -1235,14 +1235,9 @@ InternalSmmStartupThisAp (
     return EFI_INVALID_PARAMETER;
   }
 
-  if (Token == NULL) {
-    AcquireSpinLock (mSmmMpSyncData->CpuData[CpuIndex].Busy);
-  } else {
-    if (!AcquireSpinLockOrFail (mSmmMpSyncData->CpuData[CpuIndex].Busy)) {
-      DEBUG((DEBUG_ERROR, "Can't acquire mSmmMpSyncData->CpuData[%d].Busy\n", CpuIndex));
-      return EFI_NOT_READY;
-    }
+  AcquireSpinLock (mSmmMpSyncData->CpuData[CpuIndex].Busy);
 
+  if (Token != NULL) {
     *Token = (MM_COMPLETION) CreateToken ();
   }
 
@@ -1404,7 +1399,7 @@ InternalSmmStartupAllAPs (
 EFI_STATUS
 EFIAPI
 ProcedureWrapper (
-  IN OUT VOID *Buffer
+  IN     VOID *Buffer
   )
 {
   PROCEDURE_WRAPPER *Wrapper;
@@ -1967,7 +1962,7 @@ RegisterSmmEntry (
                                        EFI_MP_SERVICES_PROTOCOL.StartupAllAPs.
                                        If caller may pass a value of NULL to deregister any existing
                                        startup procedure.
-  @param[in]      ProcedureArguments   Allows the caller to pass a list of parameters to the code that is
+  @param[in,out]  ProcedureArguments   Allows the caller to pass a list of parameters to the code that is
                                        run by the AP. It is an optional common mailbox between APs and
                                        the caller to share information
 
@@ -1977,8 +1972,8 @@ RegisterSmmEntry (
 **/
 EFI_STATUS
 RegisterStartupProcedure (
-  IN EFI_AP_PROCEDURE    Procedure,
-  IN VOID                *ProcedureArguments OPTIONAL
+  IN     EFI_AP_PROCEDURE    Procedure,
+  IN OUT VOID                *ProcedureArguments OPTIONAL
   )
 {
   if (Procedure == NULL && ProcedureArguments != NULL) {

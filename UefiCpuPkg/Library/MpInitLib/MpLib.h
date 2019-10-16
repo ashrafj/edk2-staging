@@ -11,10 +11,10 @@
 
 #include <PiPei.h>
 
-#include <Register/Cpuid.h>
-#include <Register/Msr.h>
-#include <Register/LocalApic.h>
-#include <Register/Microcode.h>
+#include <Register/Intel/Cpuid.h>
+#include <Register/Intel/Msr.h>
+#include <Register/Intel/LocalApic.h>
+#include <Register/Intel/Microcode.h>
 
 #include <Library/MpInitLib.h>
 #include <Library/BaseLib.h>
@@ -185,6 +185,10 @@ typedef struct {
   UINT16                ModeTransitionSegment;
   UINT32                ModeHighMemory;
   UINT16                ModeHighSegment;
+  //
+  // Enable5LevelPaging indicates whether 5-level paging is enabled in long mode.
+  //
+  BOOLEAN               Enable5LevelPaging;
 } MP_CPU_EXCHANGE_INFO;
 
 #pragma pack()
