@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2014 - 2018, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2014 - 2019, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -35,7 +35,8 @@ UFS_PASS_THRU_PRIVATE_DATA gUfsPassThruTemplate = {
   },
   0,                              // UfsHostController
   0,                              // UfsHcBase
-  0,                              // Capabilities
+  {0, 0},                         // UfsHcInfo
+  {NULL, NULL},                   // UfsHcDriverInterface
   0,                              // TaskTag
   0,                              // UtpTrlBase
   0,                              // Nutrs
@@ -91,6 +92,8 @@ UFS_DEVICE_PATH    mUfsDevicePathTemplate = {
 };
 
 UINT8 mUfsTargetId[TARGET_MAX_BYTES];
+
+GLOBAL_REMOVE_IF_UNREFERENCED EDKII_UFS_HC_PLATFORM_PROTOCOL  *mUfsHcPlatform;
 
 /**
   Sends a SCSI Request Packet to a SCSI device that is attached to the SCSI channel. This function
@@ -819,7 +822,9 @@ UfsPassThruDriverBindingStart (
   UINTN                                 UfsHcBase;
   UINT32                                Index;
   UFS_UNIT_DESC                         UnitDescriptor;
+  UFS_DEV_DESC                          DeviceDescriptor;
   UINT32                                UnitDescriptorSize;
+  UINT32                                DeviceDescriptorSize;
 
   Status    = EFI_SUCCESS;
   UfsHc     = NULL;
@@ -864,7 +869,26 @@ UfsPassThruDriverBindingStart (
   Private->ExtScsiPassThru.Mode = &Private->ExtScsiPassThruMode;
   Private->UfsHostController    = UfsHc;
   Private->UfsHcBase            = UfsHcBase;
+  Private->Handle               = Controller;
+  Private->UfsHcDriverInterface.UfsHcProtocol = UfsHc;
+  Private->UfsHcDriverInterface.UfsExecUicCommand = UfsHcDriverInterfaceExecUicCommand;
   InitializeListHead (&Private->Queue);
+
+  //
+  // This has to be done before initializing UfsHcInfo or calling the UfsControllerInit
+  //
+  if (mUfsHcPlatform == NULL) {
+    Status = gBS->LocateProtocol (&gEdkiiUfsHcPlatformProtocolGuid, NULL, (VOID**)&mUfsHcPlatform);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_INFO, "No UfsHcPlatformProtocol present\n"));
+    }
+  }
+
+  Status = GetUfsHcInfo (Private);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to initialize UfsHcInfo\n"));
+    goto Error;
+  }
 
   //
   // Initialize UFS Host Controller H/W.
@@ -894,7 +918,6 @@ UfsPassThruDriverBindingStart (
 
   //
   // Check if 8 common luns are active and set corresponding bit mask.
-  // TODO: Parse device descriptor to decide if exposing RPMB LUN to upper layer for authentication access.
   //
   UnitDescriptorSize = sizeof (UFS_UNIT_DESC);
   for (Index = 0; Index < 8; Index++) {
@@ -906,6 +929,20 @@ UfsPassThruDriverBindingStart (
     if (UnitDescriptor.LunEn == 0x1) {
       DEBUG ((DEBUG_INFO, "UFS LUN %X is enabled\n", Index));
       Private->Luns.BitMask |= (BIT0 << Index);
+    }
+  }
+
+  //
+  // Check if RPMB WLUN is supported and set corresponding bit mask.
+  //
+  DeviceDescriptorSize = sizeof (UFS_DEV_DESC);
+  Status = UfsRwDeviceDesc (Private, TRUE, UfsDeviceDesc, 0, 0, &DeviceDescriptor, &DeviceDescriptorSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to read device descriptor, status = %r\n", Status));
+  } else {
+    if (DeviceDescriptor.SecurityLun == 0x1) {
+      DEBUG ((DEBUG_INFO, "UFS WLUN RPMB is supported\n"));
+      Private->Luns.BitMask |= BIT11;
     }
   }
 
