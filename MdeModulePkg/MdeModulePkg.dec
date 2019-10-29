@@ -1020,6 +1020,28 @@
   # @Prompt Enable UEFI Stack Guard.
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|FALSE|BOOLEAN|0x30001055
 
+  ## This PCD is to indicate the PCI Bus driver to setup other new PCI features.
+  #  Each PCI feature is represented by its mask bit position and it configures
+  #  if that bit is set.
+  #
+  #   Bit 0 - if set, the PCI Bus driver programs the device's Max_Payload_Size.<BR>
+  #   Bit 1 - if set, the PCI Bus driver programs the device's Max_Read_Req_Size.<BR>
+  #   Bit 2 - if set, the PCI Bus driver programs the device's Relax Ordering state.<BR>
+  #   Bit 3 - if set, the PCI Bus driver programs the device's No-Snoop state.<BR>
+  #   Bit 4 - if set, the PCI Bus driver programs the device's Completion Timeout range.<BR>
+  #   Bit 5 - if set, the PCI Bus driver programs the device's Extended Tag range.<BR>
+  #   Bit 6 - if set, the PCI Bus driver programs the device's AtomicOp feature.<BR>
+  #   Bit 7 - if set, the PCI Bus driver programs the device's LTR feature.<BR>
+  #   Bit 8 to 11 - Reserved for future use by the PCI Bus driver.<BR>
+  #   Bit 12 - if set, the PCI Bus driver programs the PCIe link ASPM state.<BR>
+  #   Bit 13 - if set, the PCI Bus driver programs the PCIe link Common Clock Configuration.<BR>
+  #   Bit 14 - if set, the PCI Bus driver programs the PCIe link Extended Synch state.<BR>
+  #   Bit 15 to 19 - Reserved for future use by the PCI Bus driver.<BR>
+  #   Bit 20 - if set, the PCI Bus driver programs the device's PTM feature.<BR>
+  #   Bit 21 to 31 - Reserved for future use by the PCI Bus driver.<BR>
+  # @Prompt The UEFI PCI Bus driver enables the new set of other PCI Features.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdOtherPciFeatures|0x001070FF|UINT32|0x30001056
+
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
   #  PcdMaxPeiPcdCallBackNumberPerPcdEntry indicates the maximum number of callback function
