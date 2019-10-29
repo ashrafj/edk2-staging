@@ -208,8 +208,6 @@ RegisterPciDevice (
   )
 {
   EFI_STATUS          Status;
-  VOID                *PlatformOpRomBuffer;
-  UINTN               PlatformOpRomSize;
   EFI_PCI_IO_PROTOCOL *PciIo;
   UINT8               Data8;
   BOOLEAN             HasEfiImage;
@@ -244,23 +242,16 @@ RegisterPciDevice (
     //
     // Get the OpRom provided by platform
     //
-    if (gPciPlatformProtocol != NULL) {
-      Status = gPciPlatformProtocol->GetPciRom (
-                                       gPciPlatformProtocol,
-                                       PciIoDevice->Handle,
-                                       &PlatformOpRomBuffer,
-                                       &PlatformOpRomSize
-                                       );
-      if (!EFI_ERROR (Status)) {
-        PciIoDevice->EmbeddedRom    = FALSE;
-        PciIoDevice->RomSize        = (UINT32) PlatformOpRomSize;
-        PciIoDevice->PciIo.RomSize  = PlatformOpRomSize;
-        PciIoDevice->PciIo.RomImage = PlatformOpRomBuffer;
-        //
-        // For OpROM read from gPciPlatformProtocol:
-        // Add the Rom Image to internal database for later PCI light enumeration
-        //
-        PciRomAddImageMapping (
+    Status = GetPlatformPciOptionRom (
+                Controller,
+                PciIoDevice
+                );
+    if (!EFI_ERROR (Status)) {
+      //
+      // For OpROM read from the PCI Platform Protocol:
+      // Add the Rom Image to internal database for later PCI light enumeration
+      //
+      PciRomAddImageMapping (
           NULL,
           PciIoDevice->PciRootBridgeIo->SegmentNumber,
           PciIoDevice->BusNumber,
@@ -268,34 +259,7 @@ RegisterPciDevice (
           PciIoDevice->FunctionNumber,
           PciIoDevice->PciIo.RomImage,
           PciIoDevice->PciIo.RomSize
-          );
-      }
-    } else if (gPciOverrideProtocol != NULL) {
-      Status = gPciOverrideProtocol->GetPciRom (
-                                       gPciOverrideProtocol,
-                                       PciIoDevice->Handle,
-                                       &PlatformOpRomBuffer,
-                                       &PlatformOpRomSize
-                                       );
-      if (!EFI_ERROR (Status)) {
-        PciIoDevice->EmbeddedRom    = FALSE;
-        PciIoDevice->RomSize        = (UINT32) PlatformOpRomSize;
-        PciIoDevice->PciIo.RomSize  = PlatformOpRomSize;
-        PciIoDevice->PciIo.RomImage = PlatformOpRomBuffer;
-        //
-        // For OpROM read from gPciOverrideProtocol:
-        // Add the Rom Image to internal database for later PCI light enumeration
-        //
-        PciRomAddImageMapping (
-          NULL,
-          PciIoDevice->PciRootBridgeIo->SegmentNumber,
-          PciIoDevice->BusNumber,
-          PciIoDevice->DeviceNumber,
-          PciIoDevice->FunctionNumber,
-          PciIoDevice->PciIo.RomImage,
-          PciIoDevice->PciIo.RomSize
-          );
-      }
+        );
     }
   }
 

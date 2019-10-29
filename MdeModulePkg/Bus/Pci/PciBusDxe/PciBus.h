@@ -79,6 +79,7 @@ typedef enum {
 #include "PciPowerManagement.h"
 #include "PciHotPlugSupport.h"
 #include "PciLib.h"
+#include "PciPlatformSupport.h"
 
 #define VGABASE1  0x3B0
 #define VGALIMIT1 0x3BB
@@ -307,8 +308,6 @@ extern UINTN                                        gPciHostBridgeNumber;
 extern EFI_HANDLE                                   gPciHostBrigeHandles[PCI_MAX_HOST_BRIDGE_NUM];
 extern UINT64                                       gAllOne;
 extern UINT64                                       gAllZero;
-extern EFI_PCI_PLATFORM_PROTOCOL                    *gPciPlatformProtocol;
-extern EFI_PCI_OVERRIDE_PROTOCOL                    *gPciOverrideProtocol;
 extern BOOLEAN                                      mReserveIsaAliases;
 extern BOOLEAN                                      mReserveVgaAliases;
 
