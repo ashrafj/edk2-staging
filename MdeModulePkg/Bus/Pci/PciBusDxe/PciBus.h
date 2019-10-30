@@ -266,9 +266,13 @@ struct _PCI_IO_DEVICE {
 
   BOOLEAN                                   IsPciExp;
   //
-  // For SR-IOV
+  // For PCI Express Capability List Structure
   //
   UINT8                                     PciExpressCapabilityOffset;
+  PCI_CAPABILITY_PCIEXP                     PciExpStruct;
+  //
+  // For SR-IOV
+  //
   UINT32                                    AriCapabilityOffset;
   UINT32                                    SrIovCapabilityOffset;
   UINT32                                    MrIovCapabilityOffset;
