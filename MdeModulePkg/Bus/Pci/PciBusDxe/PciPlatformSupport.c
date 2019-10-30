@@ -357,6 +357,63 @@ GetPlatformPciOptionRom (
 }
 
 /**
+  Helper routine to indicate whether the given PCI device specific policy value
+  dictates to override the Max_Payload_Size to a particular value, or set as per
+  device capability.
+
+  @param  MPS     Input device-specific policy should be in terms of type
+                  EFI_PCI_CONF_MAX_PAYLOAD_SIZE
+
+  @retval TRUE    Setup Max_Payload_Size as per device capability
+          FALSE   override as per device-specific platform policy
+**/
+BOOLEAN
+SetupMpsAsPerDeviceCapability (
+  IN  UINT8                   MPS
+)
+{
+  if (MPS == EFI_PCI_CONF_MAX_PAYLOAD_SIZE_AUTO) {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+/**
+  Routine to translate the given device-specific platform policy from type
+  EFI_PCI_CONF_MAX_PAYLOAD_SIZE to HW-specific value, as per PCI Base Specification
+  Revision 4.0; for the PCI feature Max_Payload_Size.
+
+  @param  MPS     Input device-specific policy should be in terms of type
+                  EFI_PCI_CONF_MAX_PAYLOAD_SIZE
+
+  @retval         Range values for the Max_Payload_Size as defined in the PCI
+                  Base Specification 4.0
+**/
+UINT8
+TranslateMpsSetupValueToPci (
+  IN  UINT8                   MPS
+)
+{
+  switch (MPS) {
+    case EFI_PCI_CONF_MAX_PAYLOAD_SIZE_128B:
+      return PCIE_MAX_PAYLOAD_SIZE_128B;
+    case EFI_PCI_CONF_MAX_PAYLOAD_SIZE_256B:
+      return PCIE_MAX_PAYLOAD_SIZE_256B;
+    case EFI_PCI_CONF_MAX_PAYLOAD_SIZE_512B:
+      return PCIE_MAX_PAYLOAD_SIZE_512B;
+    case EFI_PCI_CONF_MAX_PAYLOAD_SIZE_1024B:
+      return PCIE_MAX_PAYLOAD_SIZE_1024B;
+    case EFI_PCI_CONF_MAX_PAYLOAD_SIZE_2048B:
+      return PCIE_MAX_PAYLOAD_SIZE_2048B;
+    case EFI_PCI_CONF_MAX_PAYLOAD_SIZE_4096B:
+      return PCIE_MAX_PAYLOAD_SIZE_4096B;
+    default:
+      return PCIE_MAX_PAYLOAD_SIZE_128B;
+  }
+}
+
+/**
   Generic routine to setup the PCI features as per its predetermined defaults.
 **/
 VOID
@@ -364,6 +421,7 @@ SetupDefaultsDevicePlatformPolicy (
   IN  PCI_IO_DEVICE               *PciDevice
   )
 {
+  PciDevice->SetupMPS = EFI_PCI_CONF_MAX_PAYLOAD_SIZE_AUTO;
 }
 
 /**
@@ -399,6 +457,7 @@ GetPciDevicePlatformPolicyEx (
       //
       // platform chipset policies are returned for this PCI device
       //
+      PciIoDevice->SetupMPS = PciPlatformExtendedPolicy.DeviceCtlMPS;
 
       DEBUG ((
           DEBUG_INFO, "[device policy: platform]"

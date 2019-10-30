@@ -582,6 +582,146 @@ IsPciRootPortEmpty (
   return FALSE;
 }
 
+/**
+  The main routine which process the PCI feature Max_Payload_Size as per the
+  device-specific platform policy, as well as in complaince with the PCI Base
+  specification Revision 4, that aligns the value for the entire PCI heirarchy
+  starting from its physical PCI Root port / Bridge device.
+
+  @param PciDevice                      A pointer to the PCI_IO_DEVICE.
+  @param PciConfigPhase                 for the PCI feature configuration phases:
+                                        PciFeatureGetDevicePolicy & PciFeatureSetupPhase
+  @param PciFeaturesConfigurationTable  pointer to OTHER_PCI_FEATURES_CONFIGURATION_TABLE
+
+  @retval EFI_SUCCESS                   processing of PCI feature Max_Payload_Size
+                                        is successful.
+**/
+EFI_STATUS
+ProcessMaxPayloadSize (
+  IN  PCI_IO_DEVICE                           *PciDevice,
+  IN  PCI_FEATURE_CONFIGURATION_PHASE         PciConfigPhase,
+  IN  OTHER_PCI_FEATURES_CONFIGURATION_TABLE  *PciFeaturesConfigurationTable
+  )
+{
+  PCI_REG_PCIE_DEVICE_CAPABILITY          PciDeviceCap;
+  UINT8                                   MpsValue;
+
+
+  PciDeviceCap.Uint32 = PciDevice->PciExpStruct.DeviceCapability.Uint32;
+
+  if (PciConfigPhase == PciFeatureGetDevicePolicy) {
+    if (SetupMpsAsPerDeviceCapability (PciDevice->SetupMPS)) {
+      MpsValue = (UINT8)PciDeviceCap.Bits.MaxPayloadSize;
+      //
+      // no change to PCI Root ports without any endpoint device
+      //
+      if (IS_PCI_BRIDGE (&PciDevice->Pci) && PciDeviceCap.Bits.MaxPayloadSize) {
+        if (IsPciRootPortEmpty (PciDevice)) {
+          MpsValue = PCIE_MAX_PAYLOAD_SIZE_128B;
+        }
+      }
+    } else {
+      MpsValue = TranslateMpsSetupValueToPci (PciDevice->SetupMPS);
+    }
+    //
+    // discard device policy override request if greater than PCI device capability
+    //
+    PciDevice->SetupMPS = MIN ((UINT8)PciDeviceCap.Bits.MaxPayloadSize, MpsValue);
+  }
+
+  //
+  // align the MPS of the tree to the HCF with this device
+  //
+  if (PciFeaturesConfigurationTable) {
+    MpsValue = PciFeaturesConfigurationTable->Max_Payload_Size;
+
+    MpsValue = MIN (PciDevice->SetupMPS, MpsValue);
+    PciDevice->SetupMPS = MIN (PciDevice->SetupMPS, MpsValue);
+
+    if (MpsValue != PciFeaturesConfigurationTable->Max_Payload_Size) {
+      PciFeaturesConfigurationTable->Max_Payload_Size = MpsValue;
+    }
+  }
+
+  DEBUG (( DEBUG_INFO,
+      "MPS: %d [DevCap:%d],",
+      PciDevice->SetupMPS, PciDeviceCap.Bits.MaxPayloadSize
+  ));
+  return EFI_SUCCESS;
+}
+
+/**
+  Overrides the PCI Device Control register MaxPayloadSize register field; if
+  the hardware value is different than the intended value.
+
+  @param  PciDevice             A pointer to the PCI_IO_DEVICE instance.
+
+  @retval EFI_SUCCESS           The data was read from or written to the PCI device.
+  @retval EFI_UNSUPPORTED       The address range specified by Offset, Width, and Count is not
+                                valid for the PCI configuration header of the PCI controller.
+  @retval EFI_INVALID_PARAMETER Buffer is NULL or Width is invalid.
+
+**/
+EFI_STATUS
+OverrideMaxPayloadSize (
+  IN PCI_IO_DEVICE          *PciDevice
+  )
+{
+  PCI_REG_PCIE_DEVICE_CONTROL PcieDev;
+  UINT32                      Offset;
+  EFI_STATUS                  Status;
+  EFI_TPL                     OldTpl;
+
+  PcieDev.Uint16 = 0;
+  Offset = PciDevice->PciExpressCapabilityOffset +
+               OFFSET_OF (PCI_CAPABILITY_PCIEXP, DeviceControl);
+  Status = PciDevice->PciIo.Pci.Read (
+                                  &PciDevice->PciIo,
+                                  EfiPciIoWidthUint16,
+                                  Offset,
+                                  1,
+                                  &PcieDev.Uint16
+                                );
+  if (EFI_ERROR(Status)){
+    DEBUG (( DEBUG_ERROR, "Unexpected DeviceControl register (0x%x) read error!",
+        Offset
+    ));
+    return Status;
+  }
+  if (PcieDev.Bits.MaxPayloadSize != PciDevice->SetupMPS) {
+    PcieDev.Bits.MaxPayloadSize = PciDevice->SetupMPS;
+    DEBUG (( DEBUG_INFO, "MPS=%d,", PciDevice->SetupMPS));
+
+    //
+    // Raise TPL to high level to disable timer interrupt while the write operation completes
+    //
+    OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
+
+    Status = PciDevice->PciIo.Pci.Write (
+                                    &PciDevice->PciIo,
+                                    EfiPciIoWidthUint16,
+                                    Offset,
+                                    1,
+                                    &PcieDev.Uint16
+                                  );
+    //
+    // Restore TPL to its original level
+    //
+    gBS->RestoreTPL (OldTpl);
+
+    if (!EFI_ERROR(Status)) {
+      PciDevice->PciExpStruct.DeviceControl.Uint16 = PcieDev.Uint16;
+    } else {
+      DEBUG (( DEBUG_ERROR, "Unexpected DeviceControl register (0x%x) write error!",
+          Offset
+      ));
+    }
+  } else {
+    DEBUG (( DEBUG_INFO, "No write of MPS=%d,", PciDevice->SetupMPS));
+  }
+
+  return Status;
+}
 
 /**
   helper routine to dump the PCIe Device Port Type
@@ -669,6 +809,18 @@ SetupDevicePciFeatures (
     }
   }
 
+  DEBUG ((DEBUG_INFO, "["));
+  //
+  // process the PCI device Max_Payload_Size feature
+  //
+  if (SetupMaxPayloadSize ()) {
+    Status = ProcessMaxPayloadSize (
+              PciDevice,
+              PciConfigPhase,
+              OtherPciFeaturesConfigTable
+              );
+  }
+  DEBUG ((DEBUG_INFO, "]\n"));
   return Status;
 }
 
@@ -765,6 +917,10 @@ ProgramDevicePciFeatures (
 {
   EFI_STATUS           Status = EFI_SUCCESS;
 
+  if (SetupMaxPayloadSize ()) {
+    Status = OverrideMaxPayloadSize (PciDevice);
+  }
+  DEBUG (( DEBUG_INFO, "\n"));
   return Status;
 }
 
@@ -878,6 +1034,7 @@ AddPrimaryRootPortNode (
                     );
   if (PciConfigTable) {
     PciConfigTable->ID                          = PortNumber;
+    PciConfigTable->Max_Payload_Size            = PCIE_MAX_PAYLOAD_SIZE_4096B;
   }
   RootPortNode->OtherPciFeaturesConfigurationTable  = PciConfigTable;
 
