@@ -139,6 +139,17 @@ typedef enum {
 
 
 /**
+  Main routine to indicate platform selection of any of the other PCI features
+  to be configured by this driver
+
+  @retval TRUE    platform has selected the other PCI features to be configured
+          FALSE   platform has not selected any of the other PCI features
+**/
+BOOLEAN
+CheckOtherPciFeaturesPcd (
+  );
+
+/**
   Enumerate all the nodes of the specified root bridge or PCI-PCI Bridge, to
   configure the other PCI features.
 

@@ -8,6 +8,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "PciBus.h"
+#include "PciFeatureSupport.h"
 
 //
 // This device structure is serviced as a header.
@@ -169,6 +170,8 @@ DestroyRootBridgeByHandle (
     Temp = PCI_IO_DEVICE_FROM_LINK (CurrentLink);
 
     if (Temp->Handle == Controller) {
+
+      DestroyRootBridgePciFeaturesConfigCompletionList (Temp);
 
       RemoveEntryList (CurrentLink);
 
@@ -818,6 +821,14 @@ StartPciDevicesOnBridge (
   if (EFI_ERROR (Status) == EFI_NOT_FOUND) {
     return Status;
   } else {
+    if (CheckOtherPciFeaturesPcd ()) {
+      //
+      // the late configuration of PCI features
+      //
+      Status = EnumerateOtherPciFeatures (
+                  RootBridge
+                );
+    }
     //
     // finally start those PCI bridge port devices only
     //
