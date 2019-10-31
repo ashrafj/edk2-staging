@@ -510,6 +510,46 @@ SetDevicePolicyRelaxOrder (
 }
 
 /**
+  Routine to set the device-specific policy for the PCI feature No-Snoop enable
+  or disable
+
+  @param  NoSnoop       value corresponding to data type EFI_PCI_CONF_NO_SNOOP
+  @param  PciDevice     A pointer to PCI_IO_DEVICE
+**/
+VOID
+SetDevicePolicyNoSnoop (
+  IN  EFI_PCI_CONF_NO_SNOOP       NoSnoop,
+  OUT PCI_IO_DEVICE               *PciDevice
+  )
+{
+  //
+  // implementation specific rules for the usage of PCI_FEATURE_POLICY members
+  // exclusively for the PCI Feature No-Snoop
+  //
+  // .Override = 0 to skip this PCI feature No-Snoop for the PCI device
+  // .Override = 1 to program this No-Snoop PCI feature
+  //      .Act = 1 to enable the No-Snoop in the PCI device
+  //      .Act = 0 to disable the No-Snoop in the PCI device
+  //
+  switch (NoSnoop) {
+    case  EFI_PCI_CONF_NS_AUTO:
+      PciDevice->SetupNS.Override = 0;
+      break;
+    case  EFI_PCI_CONF_NS_DISABLE:
+      PciDevice->SetupNS.Override = 1;
+      PciDevice->SetupNS.Act = 0;
+      break;
+    case  EFI_PCI_CONF_NS_ENABLE:
+      PciDevice->SetupNS.Override = 1;
+      PciDevice->SetupNS.Act = 1;
+      break;
+    default:
+      PciDevice->SetupNS.Override = 0;
+      break;
+  }
+}
+
+/**
   Generic routine to setup the PCI features as per its predetermined defaults.
 **/
 VOID
@@ -520,6 +560,7 @@ SetupDefaultsDevicePlatformPolicy (
   PciDevice->SetupMPS = EFI_PCI_CONF_MAX_PAYLOAD_SIZE_AUTO;
   PciDevice->SetupMRRS = EFI_PCI_CONF_MAX_READ_REQ_SIZE_AUTO;
   PciDevice->SetupRO.Override = 0;
+  PciDevice->SetupNS.Override = 0;
 }
 
 /**
@@ -561,6 +602,10 @@ GetPciDevicePlatformPolicyEx (
       // set device specific policy for Relax Ordering
       //
       SetDevicePolicyRelaxOrder (PciPlatformExtendedPolicy.DeviceCtlRelaxOrder, PciIoDevice);
+      //
+      // set the device specific policy for No-Snoop
+      //
+      SetDevicePolicyNoSnoop (PciPlatformExtendedPolicy.DeviceCtlNoSnoop, PciIoDevice);
 
       DEBUG ((
           DEBUG_INFO, "[device policy: platform]"
