@@ -550,6 +550,85 @@ SetDevicePolicyNoSnoop (
 }
 
 /**
+  Routine to set the device-specific policy for the PCI feature CTO value range
+  or disable
+
+  @param  CtoSupport    value corresponding to data type EFI_PCI_CONF_CTO_SUPPORT
+  @param  PciDevice     A pointer to PCI_IO_DEVICE
+**/
+VOID
+SetDevicePolicyCTO (
+  IN  EFI_PCI_CONF_CTO_SUPPORT    CtoSupport,
+  OUT PCI_IO_DEVICE               *PciDevice
+)
+{
+  //
+  // implementation specific rules for the usage of PCI_FEATURE_POLICY members
+  // exclusively for the PCI Feature CTO
+  //
+  // .Override = 0 to skip this PCI feature CTO for the PCI device
+  // .Override = 1 to program this CTO PCI feature
+  //      .Act = 1 to program the CTO range as per given device policy in .Support
+  //      .Act = 0 to disable the CTO mechanism in the PCI device, CTO set to default range
+  //
+  switch (CtoSupport) {
+    case  EFI_PCI_CONF_CTO_AUTO:
+      PciDevice->SetupCTO.Override = 0;
+      break;
+    case  EFI_PCI_CONF_CTO_DEFAULT:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_50US_50MS;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_A1:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_50US_100US;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_A2:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_1MS_10MS;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_B1:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_16MS_55MS;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_B2:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_65MS_210MS;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_C1:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_260MS_900MS;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_C2:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_1S_3_5S;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_D1:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_4S_13S;
+      break;
+    case  EFI_PCI_CONF_CTO_RANGE_D2:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 1;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_17S_64S;
+      break;
+    case  EFI_PCI_CONF_CTO_DET_DISABLE:
+      PciDevice->SetupCTO.Override = 1;
+      PciDevice->SetupCTO.Act = 0;
+      PciDevice->SetupCTO.Support = PCIE_COMPLETION_TIMEOUT_50US_50MS;
+      break;
+  }
+}
+
+/**
   Generic routine to setup the PCI features as per its predetermined defaults.
 **/
 VOID
@@ -561,6 +640,7 @@ SetupDefaultsDevicePlatformPolicy (
   PciDevice->SetupMRRS = EFI_PCI_CONF_MAX_READ_REQ_SIZE_AUTO;
   PciDevice->SetupRO.Override = 0;
   PciDevice->SetupNS.Override = 0;
+  PciDevice->SetupCTO.Override = 0;
 }
 
 /**
@@ -606,6 +686,10 @@ GetPciDevicePlatformPolicyEx (
       // set the device specific policy for No-Snoop
       //
       SetDevicePolicyNoSnoop (PciPlatformExtendedPolicy.DeviceCtlNoSnoop, PciIoDevice);
+      //
+      // set the device specific policy for Completion Timeout (CTO)
+      //
+      SetDevicePolicyCTO (PciPlatformExtendedPolicy.CTOsupport, PciIoDevice);
 
       DEBUG ((
           DEBUG_INFO, "[device policy: platform]"
