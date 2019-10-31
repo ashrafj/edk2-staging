@@ -82,6 +82,7 @@ typedef enum {
 #include "PciHotPlugSupport.h"
 #include "PciLib.h"
 #include "PciPlatformSupport.h"
+#include "PciFeatureSupport.h"
 
 #define VGABASE1  0x3B0
 #define VGALIMIT1 0x3BB
@@ -291,6 +292,7 @@ struct _PCI_IO_DEVICE {
   //
   UINT8                                     SetupMPS;
   UINT8                                     SetupMRRS;
+  PCI_FEATURE_POLICY                        SetupRO;
 };
 
 #define PCI_IO_DEVICE_FROM_PCI_IO_THIS(a) \

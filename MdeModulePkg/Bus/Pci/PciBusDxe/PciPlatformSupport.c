@@ -471,6 +471,45 @@ TranslateMrrsSetupValueToPci (
 }
 
 /**
+  Routine to set the device-specific policy for the PCI feature Relax Ordering
+
+  @param  RelaxOrder    value corresponding to data type EFI_PCI_CONF_RELAX_ORDER
+  @param  PciDevice     A pointer to PCI_IO_DEVICE
+**/
+VOID
+SetDevicePolicyRelaxOrder (
+  IN  EFI_PCI_CONF_RELAX_ORDER    RelaxOrder,
+  OUT PCI_IO_DEVICE               *PciDevice
+  )
+{
+  //
+  // implementation specific rules for the usage of PCI_FEATURE_POLICY members
+  // exclusively for the PCI Feature Relax Ordering (RO)
+  //
+  // .Override = 0 to skip this PCI feature RO for the PCI device
+  // .Override = 1 to program this RO PCI feature
+  //      .Act = 1 to enable the RO in the PCI device
+  //      .Act = 0 to disable the RO in the PCI device
+  //
+  switch (RelaxOrder) {
+    case  EFI_PCI_CONF_RO_AUTO:
+      PciDevice->SetupRO.Override = 0;
+      break;
+    case  EFI_PCI_CONF_RO_DISABLE:
+      PciDevice->SetupRO.Override = 1;
+      PciDevice->SetupRO.Act = 0;
+      break;
+    case  EFI_PCI_CONF_RO_ENABLE:
+      PciDevice->SetupRO.Override = 1;
+      PciDevice->SetupRO.Act = 1;
+      break;
+    default:
+      PciDevice->SetupRO.Override = 0;
+      break;
+  }
+}
+
+/**
   Generic routine to setup the PCI features as per its predetermined defaults.
 **/
 VOID
@@ -480,6 +519,7 @@ SetupDefaultsDevicePlatformPolicy (
 {
   PciDevice->SetupMPS = EFI_PCI_CONF_MAX_PAYLOAD_SIZE_AUTO;
   PciDevice->SetupMRRS = EFI_PCI_CONF_MAX_READ_REQ_SIZE_AUTO;
+  PciDevice->SetupRO.Override = 0;
 }
 
 /**
@@ -517,6 +557,10 @@ GetPciDevicePlatformPolicyEx (
       //
       PciIoDevice->SetupMPS = PciPlatformExtendedPolicy.DeviceCtlMPS;
       PciIoDevice->SetupMRRS = PciPlatformExtendedPolicy.DeviceCtlMRRS;
+      //
+      // set device specific policy for Relax Ordering
+      //
+      SetDevicePolicyRelaxOrder (PciPlatformExtendedPolicy.DeviceCtlRelaxOrder, PciIoDevice);
 
       DEBUG ((
           DEBUG_INFO, "[device policy: platform]"

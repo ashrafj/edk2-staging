@@ -912,6 +912,81 @@ OverrideMaxReadReqSize (
 }
 
 /**
+  Overrides the PCI Device Control register Relax Order register field; if
+  the hardware value is different than the intended value.
+
+  @param  PciDevice             A pointer to the PCI_IO_DEVICE instance.
+
+  @retval EFI_SUCCESS           The data was read from or written to the PCI device.
+  @retval EFI_UNSUPPORTED       The address range specified by Offset, Width, and Count is not
+                                valid for the PCI configuration header of the PCI controller.
+  @retval EFI_INVALID_PARAMETER Buffer is NULL or Width is invalid.
+
+**/
+EFI_STATUS
+OverrideRelaxOrder (
+  IN PCI_IO_DEVICE          *PciDevice
+  )
+{
+  PCI_REG_PCIE_DEVICE_CONTROL PcieDev;
+  UINT32                      Offset;
+  EFI_STATUS                  Status;
+  EFI_TPL                     OldTpl;
+
+  PcieDev.Uint16 = 0;
+  Offset = PciDevice->PciExpressCapabilityOffset +
+               OFFSET_OF (PCI_CAPABILITY_PCIEXP, DeviceControl);
+  Status = PciDevice->PciIo.Pci.Read (
+                                  &PciDevice->PciIo,
+                                  EfiPciIoWidthUint16,
+                                  Offset,
+                                  1,
+                                  &PcieDev.Uint16
+                                );
+  if (EFI_ERROR(Status)){
+    DEBUG (( DEBUG_ERROR, "Unexpected DeviceControl register (0x%x) read error!",
+        Offset
+    ));
+    return Status;
+  }
+  if (PciDevice->SetupRO.Override
+      &&  PcieDev.Bits.RelaxedOrdering != PciDevice->SetupRO.Act
+      ) {
+    PcieDev.Bits.RelaxedOrdering = PciDevice->SetupRO.Act;
+    DEBUG (( DEBUG_INFO, "RO=%d,", PciDevice->SetupRO.Act));
+
+    //
+    // Raise TPL to high level to disable timer interrupt while the write operation completes
+    //
+    OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
+
+    Status = PciDevice->PciIo.Pci.Write (
+                                    &PciDevice->PciIo,
+                                    EfiPciIoWidthUint16,
+                                    Offset,
+                                    1,
+                                    &PcieDev.Uint16
+                                  );
+    //
+    // Restore TPL to its original level
+    //
+    gBS->RestoreTPL (OldTpl);
+
+    if (!EFI_ERROR(Status)) {
+      PciDevice->PciExpStruct.DeviceControl.Uint16 = PcieDev.Uint16;
+    } else {
+      DEBUG (( DEBUG_ERROR, "Unexpected DeviceControl register (0x%x) write error!",
+          Offset
+      ));
+    }
+  } else {
+    DEBUG (( DEBUG_INFO, "No write of RO,", PciDevice->SetupRO.Act));
+  }
+
+  return Status;
+}
+
+/**
   helper routine to dump the PCIe Device Port Type
 **/
 VOID
@@ -1121,6 +1196,9 @@ ProgramDevicePciFeatures (
   }
   if (SetupMaxReadReqSize ()) {
     Status = OverrideMaxReadReqSize (PciDevice);
+  }
+  if (SetupRelaxOrder ()) {
+    Status = OverrideRelaxOrder (PciDevice);
   }
   DEBUG (( DEBUG_INFO, "\n"));
   return Status;
