@@ -106,22 +106,4 @@ GetPlatformPciOptionRom (
   IN  PCI_IO_DEVICE                 *PciIoDevice
   );
 
-/**
-  Gets the PCI device-specific platform policy from the PCI Platform Protocol.
-  If no PCI Platform protocol is published than setup the PCI feature to predetermined
-  defaults, in order to align all the PCI devices in the PCI hierarchy, as applicable.
-
-  @param  PciDevice     A pointer to PCI_IO_DEVICE
-
-  @retval EFI_STATUS    The direct status from the PCI Platform Protocol
-  @retval EFI_SUCCESS   On return of predetermined PCI features defaults, for
-                        the case when protocol returns as EFI_UNSUPPORTED to
-                        indicate PCI device exist and it has no platform policy
-                        defined. Also, on returns when no PCI Platform Protocol
-                        exist.
-**/
-EFI_STATUS
-GetPciDevicePlatformPolicy (
-  IN PCI_IO_DEVICE          *PciDevice
-  );
 #endif

@@ -14,8 +14,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 EFI_PCI_PLATFORM_PROTOCOL                     *mPciPlatformProtocol;
 EFI_PCI_OVERRIDE_PROTOCOL                     *mPciOverrideProtocol;
 
-EFI_PCI_PLATFORM_PROTOCOL2                    *mPciPlatformProtocol2;
-EFI_PCI_OVERRIDE_PROTOCOL2                    *mPciOverrideProtocol2;
 
 
 /**
@@ -26,29 +24,6 @@ VOID
 LocatePciPlatformProtocol (
   )
 {
-  mPciPlatformProtocol2 = NULL;
-  gBS->LocateProtocol (
-      &gEfiPciPlatformProtocol2Guid,
-      NULL,
-      (VOID **) &mPciPlatformProtocol2
-  );
-
-  //
-  // If PCI Platform protocol doesn't exist, try to get Pci Override Protocol.
-  //
-  if (mPciPlatformProtocol2 == NULL) {
-    mPciOverrideProtocol2 = NULL;
-    gBS->LocateProtocol (
-        &gEfiPciOverrideProtocol2Guid,
-        NULL,
-        (VOID **) &mPciOverrideProtocol2
-    );
-  }
-  //
-  // fetch the old PCI Platform Protocols if new are not installed
-  //
-  if (mPciOverrideProtocol2 == NULL) {
-
     mPciPlatformProtocol = NULL;
     gBS->LocateProtocol (
         &gEfiPciPlatformProtocolGuid,
@@ -67,7 +42,6 @@ LocatePciPlatformProtocol (
           (VOID **) &mPciOverrideProtocol
       );
     }
-  }
 }
 
 /**
@@ -78,17 +52,13 @@ BOOLEAN
 CheckPciPlatformProtocolInstall (
   )
 {
-  if (mPciPlatformProtocol2 != NULL) {
-    return TRUE;
-  } else if (mPciOverrideProtocol2 != NULL) {
-    return TRUE;
-  } else {
+
     if (mPciPlatformProtocol != NULL) {
       return TRUE;
     } else if (mPciOverrideProtocol != NULL){
       return TRUE;
     }
-  }
+
   return FALSE;
 }
 
@@ -120,32 +90,6 @@ PciPlatformPreprocessController (
   )
 {
   EFI_STATUS  Status;
-
-  if (mPciPlatformProtocol2 != NULL) {
-    //
-    // Call PlatformPci::PrepController() if the protocol is present.
-    //
-    Status = mPciPlatformProtocol2->PlatformPrepController (
-                                      mPciPlatformProtocol2,
-                                      HostBridgeHandle,
-                                      RootBridgeHandle,
-                                      RootBridgePciAddress,
-                                      Phase,
-                                      ExecPhase
-                                    );
-  } else if (mPciOverrideProtocol2 != NULL) {
-    //
-    // Call PlatformPci::PrepController() if the protocol is present.
-    //
-    Status = mPciOverrideProtocol2->PlatformPrepController (
-                                      mPciOverrideProtocol2,
-                                      HostBridgeHandle,
-                                      RootBridgeHandle,
-                                      RootBridgePciAddress,
-                                      Phase,
-                                      ExecPhase
-                                    );
-  } else {
     if (mPciPlatformProtocol != NULL) {
       //
       // Call PlatformPci::PrepController() if the protocol is present.
@@ -176,7 +120,6 @@ PciPlatformPreprocessController (
       //
       return EFI_NOT_FOUND;
     }
-  }
   return Status;
 }
 
@@ -199,21 +142,6 @@ PciPlatformNotifyPhase (
 {
   EFI_STATUS  Status;
 
-  if (mPciPlatformProtocol2 != NULL) {
-    Status = mPciPlatformProtocol2->PlatformNotify (
-                                      mPciPlatformProtocol2,
-                                      HostBridgeHandle,
-                                      Phase,
-                                      ExecPhase
-                                    );
-  } else if (mPciOverrideProtocol2 != NULL) {
-    Status = mPciOverrideProtocol2->PlatformNotify (
-                                      mPciOverrideProtocol2,
-                                      HostBridgeHandle,
-                                      Phase,
-                                      ExecPhase
-                                    );
-  } else {
 
     if (mPciPlatformProtocol != NULL) {
       Status = mPciPlatformProtocol->PlatformNotify (
@@ -235,7 +163,6 @@ PciPlatformNotifyPhase (
       //
       return EFI_NOT_FOUND;
     }
-  }
   return Status;
 }
 
@@ -252,18 +179,6 @@ PciGetPlatformPolicy (
   )
 {
   EFI_STATUS  Status;
-
-  if (mPciPlatformProtocol2 != NULL) {
-      Status = mPciPlatformProtocol2->GetPlatformPolicy (
-                                        mPciPlatformProtocol2,
-                                        PciPolicy
-                                      );
-  } else if (mPciOverrideProtocol2 != NULL) {
-      Status = mPciOverrideProtocol2->GetPlatformPolicy (
-                                        mPciOverrideProtocol2,
-                                        PciPolicy
-                                      );
-  } else {
     if (mPciPlatformProtocol != NULL) {
       Status = mPciPlatformProtocol->GetPlatformPolicy (
                                       mPciPlatformProtocol,
@@ -282,7 +197,6 @@ PciGetPlatformPolicy (
       //
       return EFI_NOT_FOUND;
     }
-  }
   return Status;
 }
 
@@ -309,22 +223,6 @@ GetPlatformPciOptionRom (
   EFI_STATUS  Status;
   VOID        *PlatformOpRomBuffer;
   UINTN       PlatformOpRomSize;
-
-  if (mPciPlatformProtocol2 != NULL) {
-    Status = mPciPlatformProtocol2->GetPciRom (
-                                      mPciPlatformProtocol2,
-                                      PciIoDevice->Handle,
-                                      &PlatformOpRomBuffer,
-                                      &PlatformOpRomSize
-                                      );
-  } else if (mPciOverrideProtocol2 != NULL) {
-    Status = mPciOverrideProtocol2->GetPciRom (
-                                      mPciOverrideProtocol2,
-                                      PciIoDevice->Handle,
-                                      &PlatformOpRomBuffer,
-                                      &PlatformOpRomSize
-                                      );
-  } else {
     if (mPciPlatformProtocol != NULL) {
       Status = mPciPlatformProtocol->GetPciRom (
                                       mPciPlatformProtocol,
@@ -345,7 +243,6 @@ GetPlatformPciOptionRom (
       //
       return EFI_NOT_FOUND;
     }
-  }
 
   if (!EFI_ERROR (Status)) {
     PciIoDevice->EmbeddedRom    = FALSE;
@@ -354,105 +251,4 @@ GetPlatformPciOptionRom (
     PciIoDevice->PciIo.RomImage = PlatformOpRomBuffer;
   }
   return Status;
-}
-
-/**
-  Generic routine to setup the PCI features as per its predetermined defaults.
-**/
-VOID
-SetupDefaultsDevicePlatformPolicy (
-  IN  PCI_IO_DEVICE               *PciDevice
-  )
-{
-}
-
-/**
-  Intermediate routine to either get the PCI device specific platform policies
-  through the PCI Platform Protocol, or its alias the PCI Override Protocol.
-
-  @param  PciIoDevice         A pointer to PCI_IO_DEVICE
-  @param  PciPlatformProtocol A pointer to EFI_PCI_PLATFORM_PROTOCOL2
-
-  @retval EFI_STATUS          The direct status from the PCI Platform Protocol
-  @retval EFI_SUCCESS         if on returning predetermined PCI features defaults,
-                              for the case when protocol returns as EFI_UNSUPPORTED
-                              to indicate PCI device exist and it has no platform
-                              policy defined.
-**/
-EFI_STATUS
-GetPciDevicePlatformPolicyEx (
-  IN  PCI_IO_DEVICE               *PciIoDevice,
-  IN  EFI_PCI_PLATFORM_PROTOCOL2  *PciPlatformProtocol
-  )
-{
-  EFI_PCI_PLATFORM_EXTENDED_POLICY  PciPlatformExtendedPolicy;
-  EFI_STATUS                        Status;
-
-  ZeroMem (&PciPlatformExtendedPolicy, sizeof (EFI_PCI_PLATFORM_EXTENDED_POLICY));
-  Status = PciPlatformProtocol->GetDevicePolicy (
-                                  PciPlatformProtocol,
-                                  PciIoDevice->Handle,
-                                  &PciPlatformExtendedPolicy
-                                  );
-  switch (Status) {
-    case  EFI_SUCCESS:
-      //
-      // platform chipset policies are returned for this PCI device
-      //
-
-      DEBUG ((
-          DEBUG_INFO, "[device policy: platform]"
-      ));
-      return Status;
-
-    case  EFI_UNSUPPORTED:
-      //
-      // platform chipset policies are not provided for this PCI device
-      // let the enumeration happen as per the PCI standard way
-      //
-      SetupDefaultsDevicePlatformPolicy (PciIoDevice);
-      DEBUG ((
-          DEBUG_INFO, "[device policy: default]"
-      ));
-      return EFI_SUCCESS;
-
-    default:
-      DEBUG ((
-          DEBUG_ERROR, "[device policy: none (error)]"
-      ));
-      return Status;
-  }
-}
-
-/**
-  Gets the PCI device-specific platform policy from the PCI Platform Protocol.
-  If no PCI Platform protocol is published than setup the PCI feature to predetermined
-  defaults, in order to align all the PCI devices in the PCI hierarchy, as applicable.
-
-  @param  PciDevice     A pointer to PCI_IO_DEVICE
-
-  @retval EFI_STATUS    The direct status from the PCI Platform Protocol
-  @retval EFI_SUCCESS   On return of predetermined PCI features defaults, for
-                        the case when protocol returns as EFI_UNSUPPORTED to
-                        indicate PCI device exist and it has no platform policy
-                        defined. Also, on returns when no PCI Platform Protocol
-                        exist.
-**/
-EFI_STATUS
-GetPciDevicePlatformPolicy (
-  IN PCI_IO_DEVICE          *PciDevice
-  )
-{
-  if (mPciPlatformProtocol2 != NULL) {
-    return GetPciDevicePlatformPolicyEx (PciDevice, mPciPlatformProtocol2);
-  } else if (mPciOverrideProtocol2 != NULL) {
-    return GetPciDevicePlatformPolicyEx (PciDevice, mPciOverrideProtocol2);
-  } else {
-    //
-    // new PCI Platform Protocol 2 is not installed; let the enumeration happen
-    // as per PCI standard way
-    //
-    SetupDefaultsDevicePlatformPolicy (PciDevice);
-    return EFI_SUCCESS;
-  }
 }
