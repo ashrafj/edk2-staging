@@ -25,19 +25,6 @@ PRIMARY_ROOT_PORT_NODE                      *mPrimaryRootPortList;
 **/
 PCI_FEATURE_CONFIGURATION_COMPLETION_LIST   *mPciFeaturesConfigurationCompletionList = NULL;
 
-/**
-  Main routine to indicate platform selection of any of the other PCI features
-  to be configured by this driver
-
-  @retval TRUE    platform has selected the other PCI features to be configured
-          FALSE   platform has not selected any of the other PCI features
-**/
-BOOLEAN
-CheckOtherPciFeaturesPcd (
-  )
-{
-  return PcdGet32 (PcdOtherPciFeatures) ? TRUE : FALSE;
-}
 
 /**
   Main routine to indicate whether the platform has selected the Max_Payload_Size
@@ -712,7 +699,7 @@ ProgramDevicePciFeatures (
   IN PCI_IO_DEVICE          *PciDevice
   )
 {
-  EFI_STATUS           Status = EFI_SUCCESS;
+  EFI_STATUS           Status;
 
   return Status;
 }
