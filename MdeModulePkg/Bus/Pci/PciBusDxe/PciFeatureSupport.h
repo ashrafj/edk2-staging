@@ -41,11 +41,6 @@ typedef struct _OTHER_PCI_FEATURES_CONFIGURATION_TABLE  OTHER_PCI_FEATURES_CONFI
 typedef struct _PCI_FEATURE_CONFIGURATION_COMPLETION_LIST  PCI_FEATURE_CONFIGURATION_COMPLETION_LIST;
 
 //
-// define the data type for the PCI feature policy support
-//
-typedef struct _PCI_FEATURE_POLICY  PCI_FEATURE_POLICY;
-
-//
 // Signature value for the PCI Root Port node
 //
 #define PCI_ROOT_PORT_SIGNATURE               SIGNATURE_32 ('p', 'c', 'i', 'p')
@@ -156,27 +151,6 @@ typedef enum {
 
 }PCI_FEATURE_CONFIGURATION_PHASE;
 
-//
-// declaration for the data type to harbor the PCI feature policies
-//
-struct  _PCI_FEATURE_POLICY {
-  //
-  // if set, it indicates the feature should be enabled
-  // if clear, it indicates the feature should be disabled
-  //
-  UINT8   Act : 1;
-  //
-  // this field will be specific to feature, it can be implementation specific
-  // or it can be reserved and remain unused
-  //
-  UINT8   Support : 6;
-  //
-  // if set indicates override the feature policy defined by the members above
-  // if clear it indicates that this feature policy should be ignored completely
-  // this means the above two members should not be used
-  //
-  UINT8   Override : 1;
-};
 
 /**
   Main routine to indicate platform selection of any of the other PCI features
