@@ -293,7 +293,6 @@ struct _PCI_IO_DEVICE {
   UINT8                                     SetupMPS;
   UINT8                                     SetupMRRS;
   PCI_FEATURE_POLICY                        SetupRO;
-  PCI_FEATURE_POLICY                        SetupNS;
 };
 
 #define PCI_IO_DEVICE_FROM_PCI_IO_THIS(a) \
