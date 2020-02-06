@@ -124,36 +124,4 @@ EFI_STATUS
 GetPciDevicePlatformPolicy (
   IN PCI_IO_DEVICE          *PciDevice
   );
-
-/**
-  Helper routine to indicate whether the given PCI device specific policy value
-  dictates to override the Max_Payload_Size to a particular value, or set as per
-  device capability.
-
-  @param  MPS     Input device-specific policy should be in terms of type
-                  EFI_PCI_CONF_MAX_PAYLOAD_SIZE
-
-  @retval TRUE    Setup Max_Payload_Size as per device capability
-          FALSE   override as per device-specific platform policy
-**/
-BOOLEAN
-SetupMpsAsPerDeviceCapability (
-  IN  UINT8                   MPS
-);
-
-/**
-  Routine to translate the given device-specific platform policy from type
-  EFI_PCI_CONF_MAX_PAYLOAD_SIZE to HW-specific value, as per PCI Base Specification
-  Revision 4.0; for the PCI feature Max_Payload_Size.
-
-  @param  MPS     Input device-specific policy should be in terms of type
-                  EFI_PCI_CONF_MAX_PAYLOAD_SIZE
-
-  @retval         Range values for the Max_Payload_Size as defined in the PCI
-                  Base Specification 4.0
-**/
-UINT8
-TranslateMpsSetupValueToPci (
-  IN  UINT8                   MPS
-);
 #endif
