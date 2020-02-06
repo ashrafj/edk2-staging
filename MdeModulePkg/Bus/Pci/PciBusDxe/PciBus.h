@@ -290,7 +290,6 @@ struct _PCI_IO_DEVICE {
   // Other PCI features setup flags
   //
   UINT8                                     SetupMPS;
-  UINT8                                     SetupMRRS;
 };
 
 #define PCI_IO_DEVICE_FROM_PCI_IO_THIS(a) \

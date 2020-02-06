@@ -142,22 +142,6 @@ SetupMpsAsPerDeviceCapability (
 );
 
 /**
-  Helper routine to indicate whether the given PCI device specific policy value
-  dictates to override the Max_Read_Req_Size to a particular value, or set as per
-  device capability.
-
-  @param  MRRS    Input device-specific policy should be in terms of type
-                  EFI_PCI_CONF_MAX_READ_REQ_SIZE
-
-  @retval TRUE    Setup Max_Read_Req_Size as per device capability
-          FALSE   override as per device-specific platform policy
-**/
-BOOLEAN
-SetupMrrsAsPerDeviceCapability (
-  IN  UINT8                   MRRS
-);
-
-/**
   Routine to translate the given device-specific platform policy from type
   EFI_PCI_CONF_MAX_PAYLOAD_SIZE to HW-specific value, as per PCI Base Specification
   Revision 4.0; for the PCI feature Max_Payload_Size.
@@ -171,21 +155,5 @@ SetupMrrsAsPerDeviceCapability (
 UINT8
 TranslateMpsSetupValueToPci (
   IN  UINT8                   MPS
-);
-
-/**
-  Routine to translate the given device-specific platform policy from type
-  EFI_PCI_CONF_MAX_READ_REQ_SIZE to HW-specific value, as per PCI Base Specification
-  Revision 4.0; for the PCI feature Max_Read_Req_Size.
-
-  @param  MRRS    Input device-specific policy should be in terms of type
-                  EFI_PCI_CONF_MAX_READ_REQ_SIZE
-
-  @retval         Range values for the Max_Read_Req_Size as defined in the PCI
-                  Base Specification 4.0
-**/
-UINT8
-TranslateMrrsSetupValueToPci (
-  IN  UINT8                   MRRS
 );
 #endif

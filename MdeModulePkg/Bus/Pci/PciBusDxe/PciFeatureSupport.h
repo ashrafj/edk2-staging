@@ -84,15 +84,6 @@ struct _OTHER_PCI_FEATURES_CONFIGURATION_TABLE {
   // size among all the PCI devices in the PCI hierarchy
   //
   UINT8                                     Max_Payload_Size;
-  //
-  // to configure the PCI feature maximum read request size to maintain the memory
-  // requester size among all the PCI devices in the PCI hierarchy
-  //
-  UINT8                                     Max_Read_Request_Size;
-  //
-  // lock the Max_Read_Request_Size for the entire PCI tree of a root port
-  //
-  BOOLEAN                                   Lock_Max_Read_Request_Size;
 };
 
 
