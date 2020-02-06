@@ -1,7 +1,7 @@
 /** @file
   Header files and data structures needed by PCI Bus module.
 
-Copyright (c) 2006 - 2020, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -42,8 +42,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/PeImage.h>
 #include <IndustryStandard/Acpi.h>
-#include <Protocol/PciExpressOverride.h>
-#include <Protocol/PciExpressPlatform.h>
 
 typedef struct _PCI_IO_DEVICE              PCI_IO_DEVICE;
 typedef struct _PCI_BAR                    PCI_BAR;
@@ -81,8 +79,6 @@ typedef enum {
 #include "PciPowerManagement.h"
 #include "PciHotPlugSupport.h"
 #include "PciLib.h"
-#include "PciPlatformSupport.h"
-#include "PciFeatureSupport.h"
 
 #define VGABASE1  0x3B0
 #define VGALIMIT1 0x3BB
@@ -267,13 +263,9 @@ struct _PCI_IO_DEVICE {
 
   BOOLEAN                                   IsPciExp;
   //
-  // For PCI Express Capability List Structure
-  //
-  UINT8                                     PciExpressCapabilityOffset;
-  PCI_CAPABILITY_PCIEXP                     PciExpressCapabilityStructure;
-  //
   // For SR-IOV
   //
+  UINT8                                     PciExpressCapabilityOffset;
   UINT32                                    AriCapabilityOffset;
   UINT32                                    SrIovCapabilityOffset;
   UINT32                                    MrIovCapabilityOffset;
