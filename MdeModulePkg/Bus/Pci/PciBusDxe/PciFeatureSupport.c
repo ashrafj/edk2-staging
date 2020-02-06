@@ -467,14 +467,6 @@ GetPciFeaturesConfigurationTable (
     return EFI_SUCCESS;
   }
 
-  //
-  // The PCI features configuration table is not built for RCiEP, return NULL
-  //
-  if (PciDevice->PciExpStruct.Capability.Bits.DevicePortType == \
-      PCIE_DEVICE_PORT_TYPE_ROOT_COMPLEX_INTEGRATED_ENDPOINT) {
-    *PciFeaturesConfigTable = NULL;
-    return EFI_SUCCESS;
-  }
 
   if (IsDevicePathEnd (PciDevice->DevicePath)){
     //
@@ -584,45 +576,6 @@ IsPciRootPortEmpty (
 
 
 /**
-  helper routine to dump the PCIe Device Port Type
-**/
-VOID
-DumpDevicePortType (
-  IN  UINT8   DevicePortType
-  )
-{
-  switch (DevicePortType){
-    case PCIE_DEVICE_PORT_TYPE_PCIE_ENDPOINT:
-      DEBUG (( DEBUG_INFO, "PCIe endpoint found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_LEGACY_PCIE_ENDPOINT:
-      DEBUG (( DEBUG_INFO, "legacy PCI endpoint found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_ROOT_PORT:
-      DEBUG (( DEBUG_INFO, "PCIe Root Port found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_UPSTREAM_PORT:
-      DEBUG (( DEBUG_INFO, "PCI switch upstream port found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_DOWNSTREAM_PORT:
-      DEBUG (( DEBUG_INFO, "PCI switch downstream port found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_PCIE_TO_PCI_BRIDGE:
-      DEBUG (( DEBUG_INFO, "PCIe-PCI bridge found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_PCI_TO_PCIE_BRIDGE:
-      DEBUG (( DEBUG_INFO, "PCI-PCIe bridge found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_ROOT_COMPLEX_INTEGRATED_ENDPOINT:
-      DEBUG (( DEBUG_INFO, "RCiEP found\n"));
-      break;
-    case PCIE_DEVICE_PORT_TYPE_ROOT_COMPLEX_EVENT_COLLECTOR:
-      DEBUG (( DEBUG_INFO, "RC Event Collector found\n"));
-      break;
-  }
-}
-
-/**
    Process each PCI device as per the pltaform and device-specific policy.
 
   @param RootBridge             A pointer to the PCI_IO_DEVICE.
@@ -637,11 +590,7 @@ SetupDevicePciFeatures (
   )
 {
   EFI_STATUS                              Status;
-  PCI_REG_PCIE_CAPABILITY                 PcieCap;
   OTHER_PCI_FEATURES_CONFIGURATION_TABLE  *OtherPciFeaturesConfigTable;
-
-  PcieCap.Uint16 = PciDevice->PciExpStruct.Capability.Uint16;
-  DumpDevicePortType ((UINT8)PcieCap.Bits.DevicePortType);
 
   OtherPciFeaturesConfigTable = NULL;
   Status = GetPciFeaturesConfigurationTable (PciDevice, &OtherPciFeaturesConfigTable);
