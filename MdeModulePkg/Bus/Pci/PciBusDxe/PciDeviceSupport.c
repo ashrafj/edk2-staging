@@ -597,7 +597,7 @@ DeRegisterPciDevice (
 }
 
 /**
-  Start the PCI root Ports or PCI-PCI Bridge only.
+  Start to manage the PCI device on the specified root bridge or PCI-PCI Bridge.
 
   @param Controller          The root bridge handle.
   @param RootBridge          A pointer to the PCI_IO_DEVICE.
@@ -612,82 +612,7 @@ DeRegisterPciDevice (
 
 **/
 EFI_STATUS
-EnablePciBridges (
-  IN EFI_HANDLE                          Controller,
-  IN PCI_IO_DEVICE                       *RootBridge
-  )
-
-{
-  PCI_IO_DEVICE             *PciIoDevice;
-  EFI_STATUS                Status;
-  LIST_ENTRY                *CurrentLink;
-  UINT64                    Supports;
-
-  PciIoDevice = NULL;
-  CurrentLink = RootBridge->ChildList.ForwardLink;
-
-  while (CurrentLink != NULL && CurrentLink != &RootBridge->ChildList) {
-
-    PciIoDevice = PCI_IO_DEVICE_FROM_LINK (CurrentLink);
-
-    //
-    // check if the device has been assigned with required resource
-    // and registered
-    //
-    if (!PciIoDevice->Registered && !PciIoDevice->Allocated) {
-      return EFI_NOT_READY;
-    }
-
-    if (IS_PCI_BRIDGE (&PciIoDevice->Pci)) {
-      Status = EnablePciBridges (
-                 Controller,
-                 PciIoDevice
-                 );
-
-      PciIoDevice->PciIo.Attributes (
-                           &(PciIoDevice->PciIo),
-                           EfiPciIoAttributeOperationSupported,
-                           0,
-                           &Supports
-                         );
-      Supports &= (UINT64)EFI_PCI_DEVICE_ENABLE;
-      PciIoDevice->PciIo.Attributes (
-                           &(PciIoDevice->PciIo),
-                           EfiPciIoAttributeOperationEnable,
-                           Supports,
-                           NULL
-                         );
-
-    }
-
-    CurrentLink = CurrentLink->ForwardLink;
-  }
-
-  if (PciIoDevice == NULL) {
-    return EFI_NOT_FOUND;
-  } else {
-    return EFI_SUCCESS;
-  }
-}
-
-
-/**
-  Register to manage the PCI device on the specified root bridge or PCI-PCI Bridge.
-
-  @param Controller          The root bridge handle.
-  @param RootBridge          A pointer to the PCI_IO_DEVICE.
-  @param RemainingDevicePath A pointer to the EFI_DEVICE_PATH_PROTOCOL.
-  @param NumberOfChildren    Children number.
-  @param ChildHandleBuffer   A pointer to the child handle buffer.
-
-  @retval EFI_NOT_READY   Device is not allocated.
-  @retval EFI_UNSUPPORTED Device only support PCI-PCI bridge.
-  @retval EFI_NOT_FOUND   Can not find the specific device.
-  @retval EFI_SUCCESS     Success to start Pci devices on bridge.
-
-**/
-EFI_STATUS
-RegisterPciDevicesOnBridge (
+StartPciDevicesOnBridge (
   IN EFI_HANDLE                          Controller,
   IN PCI_IO_DEVICE                       *RootBridge,
   IN EFI_DEVICE_PATH_PROTOCOL            *RemainingDevicePath,
@@ -701,6 +626,7 @@ RegisterPciDevicesOnBridge (
   EFI_DEVICE_PATH_PROTOCOL  *CurrentDevicePath;
   EFI_STATUS                Status;
   LIST_ENTRY                *CurrentLink;
+  UINT64                    Supports;
 
   PciIoDevice = NULL;
   CurrentLink = RootBridge->ChildList.ForwardLink;
@@ -755,13 +681,27 @@ RegisterPciDevicesOnBridge (
       // If it is a PPB
       //
       if (IS_PCI_BRIDGE (&PciIoDevice->Pci)) {
-        Status = RegisterPciDevicesOnBridge (
+        Status = StartPciDevicesOnBridge (
                    Controller,
                    PciIoDevice,
                    CurrentDevicePath,
                    NumberOfChildren,
                    ChildHandleBuffer
                    );
+
+        PciIoDevice->PciIo.Attributes (
+                             &(PciIoDevice->PciIo),
+                             EfiPciIoAttributeOperationSupported,
+                             0,
+                             &Supports
+                             );
+        Supports &= (UINT64)EFI_PCI_DEVICE_ENABLE;
+        PciIoDevice->PciIo.Attributes (
+                             &(PciIoDevice->PciIo),
+                             EfiPciIoAttributeOperationEnable,
+                             Supports,
+                             NULL
+                             );
 
         return Status;
       } else {
@@ -793,13 +733,28 @@ RegisterPciDevicesOnBridge (
       }
 
       if (IS_PCI_BRIDGE (&PciIoDevice->Pci)) {
-        Status = RegisterPciDevicesOnBridge (
+        Status = StartPciDevicesOnBridge (
                    Controller,
                    PciIoDevice,
                    RemainingDevicePath,
                    NumberOfChildren,
                    ChildHandleBuffer
                    );
+
+        PciIoDevice->PciIo.Attributes (
+                             &(PciIoDevice->PciIo),
+                             EfiPciIoAttributeOperationSupported,
+                             0,
+                             &Supports
+                             );
+        Supports &= (UINT64)EFI_PCI_DEVICE_ENABLE;
+        PciIoDevice->PciIo.Attributes (
+                             &(PciIoDevice->PciIo),
+                             EfiPciIoAttributeOperationEnable,
+                             Supports,
+                             NULL
+                             );
+
       }
 
       CurrentLink = CurrentLink->ForwardLink;
@@ -810,72 +765,6 @@ RegisterPciDevicesOnBridge (
     return EFI_NOT_FOUND;
   } else {
     return EFI_SUCCESS;
-  }
-}
-
-/**
-  Start to manage the PCI device on the specified root bridge or PCI-PCI Bridge.
-
-  @param Controller          The root bridge handle.
-  @param RootBridge          A pointer to the PCI_IO_DEVICE.
-  @param RemainingDevicePath A pointer to the EFI_DEVICE_PATH_PROTOCOL.
-  @param NumberOfChildren    Children number.
-  @param ChildHandleBuffer   A pointer to the child handle buffer.
-
-  @retval EFI_NOT_READY   Device is not allocated.
-  @retval EFI_UNSUPPORTED Device only support PCI-PCI bridge.
-  @retval EFI_NOT_FOUND   Can not find the specific device.
-  @retval EFI_SUCCESS     Success to start Pci devices on bridge.
-
-**/
-EFI_STATUS
-StartPciDevicesOnBridge (
-  IN EFI_HANDLE                          Controller,
-  IN PCI_IO_DEVICE                       *RootBridge,
-  IN EFI_DEVICE_PATH_PROTOCOL            *RemainingDevicePath,
-  IN OUT UINT8                           *NumberOfChildren,
-  IN OUT EFI_HANDLE                      *ChildHandleBuffer
-  )
-
-{
-  EFI_STATUS                Status;
-
-  //
-  // first register all the PCI devices
-  //
-  Status = RegisterPciDevicesOnBridge (
-             Controller,
-             RootBridge,
-             RemainingDevicePath,
-             NumberOfChildren,
-             ChildHandleBuffer
-             );
-
-  if (EFI_ERROR (Status)) {
-    return Status;
-  } else {
-    //
-    // the late configuration of PCI Express features
-    // the platform is required to indicate its requirement for the initialization
-    // of PCI Express features by publishing its protocol
-    //
-    if (
-        gFullEnumeration
-        && IsPciExpressProtocolPresent ()
-    ) {
-
-      Status = EnumeratePciExpressFeatures (
-                Controller,
-                RootBridge
-                );
-    }
-    //
-    // finally start those PCI bridge port devices only
-    //
-    return EnablePciBridges (
-             Controller,
-             RootBridge
-             );
   }
 }
 
