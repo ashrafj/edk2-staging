@@ -334,6 +334,7 @@ SetupDefaultPciExpressDevicePolicy (
 
   PciDevice->SetupCTO.Override = 0;
 
+  PciDevice->SetupAtomicOp.Override = 0;
 }
 
 /**
@@ -448,6 +449,15 @@ GetPciExpressDevicePolicy (
       SetDevicePolicyPciExpressCto (PciExpressDevicePolicy.CTOsupport, PciDevice);
     } else {
       PciDevice->SetupCTO.Override = 0;
+    }
+
+    //
+    // set the device-specific policy for AtomicOp
+    //
+    if (mPciExpressPlatformPolicy.AtomicOp) {
+      PciDevice->SetupAtomicOp = PciExpressDevicePolicy.DeviceCtl2AtomicOp;
+    } else {
+      PciDevice->SetupAtomicOp.Override = 0;
     }
 
 
@@ -692,6 +702,19 @@ PciExpressPlatformNotifyDeviceState (
     PciExDeviceConfiguration.CTOsupport = EFI_PCI_EXPRESS_NOT_APPLICABLE;
   }
 
+  //
+  // get the device-specific state for the PCIe AtomicOp feature
+  //
+  if (mPciExpressPlatformPolicy.AtomicOp) {
+    PciExDeviceConfiguration.DeviceCtl2AtomicOp.Enable_AtomicOpRequester
+    = (UINT8)PciDevice->PciExpressCapabilityStructure.DeviceControl2.Bits.AtomicOpRequester;
+    PciExDeviceConfiguration.DeviceCtl2AtomicOp.Enable_AtomicOpEgressBlocking
+    = (UINT8)PciDevice->PciExpressCapabilityStructure.DeviceControl2.Bits.AtomicOpEgressBlocking;
+  } else {
+    PciExDeviceConfiguration.DeviceCtl2AtomicOp.Override = 0;
+    PciExDeviceConfiguration.DeviceCtl2AtomicOp.Enable_AtomicOpRequester = 0;
+    PciExDeviceConfiguration.DeviceCtl2AtomicOp.Enable_AtomicOpEgressBlocking = 0;
+  }
 
   if (mPciExPlatformProtocol != NULL) {
     return mPciExPlatformProtocol->NotifyDeviceState (
