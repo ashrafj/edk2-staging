@@ -4,7 +4,7 @@
   driver to describe the unique features of a platform.
   This protocol is optional.
 
-Copyright (c) 2019, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 
@@ -27,16 +27,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
     0x787b0367, 0xa945, 0x4d60, {0x8d, 0x34, 0xb9, 0xd1, 0x88, 0xd2, 0xd0, 0xb6} \
   }
 
-///
-/// As per the present definition and specification of this protocol, the major
-/// version is 1, and minor version is 1. Any driver utilizing this protocol
-/// shall use these versions number to maintain the backward compatibility as
-/// per its specification changes in future.
-///
-enum EfiPciExpressPlatformProtocolVersion {
-   EFI_PCI_EXPRESS_PLATFORM_PROTOCOL_MAJOR_VERSION = 1,
-   EFI_PCI_EXPRESS_PLATFORM_PROTOCOL_MINOR_VERSION = 1
-};
 
 ///
 /// Forward declaration for EFI_PCI_EXPRESS_PLATFORM_PROTOCOL.
@@ -46,318 +36,19 @@ typedef struct _EFI_PCI_EXPRESS_PLATFORM_PROTOCOL  EFI_PCI_EXPRESS_PLATFORM_PROT
 ///
 /// Related Definitions for EFI_PCI_EXPRESS_DEVICE_POLICY
 ///
+// Glossary of PCIe terminologies used:-
+//  RC = Root Complex
+//  RP = Root Port
+//  EP = Endpoint
+//  RCiEP = Root Complex integrated Endpoint
 
 ///
 /// EFI encoding used in notification to the platform, for any of the PCI Express
 /// capabilities feature state, to indicate that it is not a supported feature,
 /// or its present state is unknown
 ///
-#define EFI_PCI_EXPRESS_NOT_APPLICABLE  0xFF
-
-///
-/// Following are the data types for EFI_PCI_EXPRESS_DEVICE_POLICY
-/// each for the PCI standard feature and its corresponding bitmask
-/// representing the valid combinations of PCI attributes
-///
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe device Maximum Payload Size (MPS). Refer to PCI Express
-/// Base Specification 4 (chapter 7.5.3.4), on how to translate the below EFI
-/// encodings as per the PCI hardware terminology. If this data member value is 0
-/// than there is no platform policy to override, this feature would be enabled as
-/// per its PCI specification based on the device capabilities. Below is it
-/// data type and the macro definitions which the driver uses for interpreting
-/// the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE;
-
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_AUTO   0x00  //No request for override
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_128B   0x01  //set to default 128B
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_256B   0x02  //set to 256B if applicable
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_512B   0x03  //set to 512B if applicable
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_1024B  0x04  //set to 1024B if applicable
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_2048B  0x05  //set to 2048B if applicable
-#define EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE_4096B  0x06  //set to 4096B if applicable
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature Maximum Read Request Size (MRRS). Refer to PCI Express Base
-/// Specification 4 (chapter 7.5.3.4), on how to translate the below EFI
-/// encodings as per the PCI hardware terminology. If this data member value
-/// is returned as 0 than there is no platform policy to override, this feature
-/// would be enabled as per its PCI specification based on the device capabilities.
-/// Below is it data type and the macro definitions which the driver uses for
-/// interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE;
-
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_AUTO  0x00  //No request for override
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_128B  0x01  //set to default 128B
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_256B  0x02  //set to 256B if applicable
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_512B  0x03  //set to 512B if applicable
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_1024B 0x04  //set to 1024B if applicable
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_2048B 0x05  //set to 2048B if applicable
-#define EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE_4096B 0x06  //set to 4096B if applicable
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature Extended Tags. Refer to PCI Express Base Specification
-/// 4 (chapter 7.5.3.4), on how to translate the below EFI encodings as per the
-/// PCI hardware terminology. If this data member value is returned as 0 than
-/// there is no platform policy to override, this feature would be enabled as
-/// per its PCI specification based on the device capabilities. Below is it
-/// data type and the macro definitions which the driver uses for interpreting
-/// the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_EXTENDED_TAG;
-
-#define EFI_PCI_EXPRESS_EXTENDED_TAG_AUTO   0x00  //No request for override
-#define EFI_PCI_EXPRESS_EXTENDED_TAG_5BIT   0x01  //set to default 5-bit
-#define EFI_PCI_EXPRESS_EXTENDED_TAG_8BIT   0x02  //set to 8-bit if applicable
-#define EFI_PCI_EXPRESS_EXTENDED_TAG_10BIT  0x03  //set to 10-bit if applicable
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe link's Active State Power Mgmt (ASPM).
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.7), on how to
-/// translate the below EFI encodings as per the PCI hardware terminology.
-/// If this data member value is returned as 0 than there is no platform policy
-/// to override, this feature would be enabled as per its PCI specification based
-/// on the device capabilities.
-/// Below is it data type and the macro definitions which the driver uses for
-/// interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_ASPM_SUPPORT;
-
-#define EFI_PCI_EXPRESS_ASPM_AUTO           0x00  //No request for override
-#define EFI_PCI_EXPRESS_ASPM_DISABLE        0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_ASPM_L0s_SUPPORT    0x02  //set to L0s state
-#define EFI_PCI_EXPRESS_ASPM_L1_SUPPORT     0x03  //set to L1 state
-#define EFI_PCI_EXPRESS_ASPM_L0S_L1_SUPPORT 0x04  //set to L0s and L1 state
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe Device's Relax Ordering enable/disable.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.4), on how to
-/// translate the below EFI encodings as per the PCI hardware terminology.
-/// If this data member value is returned as 0 than there is no platform policy
-/// to override, this feature would be enabled as per its PCI specification based
-/// on the device capabilities.
-/// Below is it data type and the macro definitions which the driver uses for
-/// interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_RELAX_ORDER;
-
-#define EFI_PCI_EXPRESS_RO_AUTO     0x00  //No request for override
-#define EFI_PCI_EXPRESS_RO_DISABLE  0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_RO_ENABLE   0x02  //set to enable state
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe Device's No-Snoop enable/disable.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.4), on how to
-/// translate the below EFI encodings as per the PCI hardware terminology.
-/// If this data member value is returned as 0 than there is no platform policy
-/// to override, this feature would be enabled as per its PCI specification based
-/// on the device capabilities.
-/// Below is it data type and the macro definitions which the driver uses for
-/// interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_NO_SNOOP;
-
-#define EFI_PCI_EXPRESS_NS_AUTO     0x00  //No request for override
-#define EFI_PCI_EXPRESS_NS_DISABLE  0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_NS_ENABLE   0x02  //set to enable state
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe link's Clock configuration is common or discrete.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.7), on how to translate
-/// the below EFI encodings as per the PCI hardware terminology. If this data member
-/// value is returned as 0 than there is no platform policy to override, this
-/// feature would be enabled as per its PCI specification based on the device
-/// capabilities. Below is its data type and the macro definitions which the
-/// driver uses for interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_COMMON_CLOCK_CFG;
-
-#define EFI_PCI_EXPRESS_CLK_CFG_AUTO    0x00   //No request for override
-#define EFI_PCI_EXPRESS_CLK_CFG_ASYNCH  0x01   //set to default asynchronous clock
-#define EFI_PCI_EXPRESS_CLK_CFG_COMMON  0x02   //set to common clock
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe link's Extended Synch enable or disable.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.7), on how to translate
-/// the below EFI encodings as per the PCI hardware terminology. If this data member
-/// value is returned as 0 than there is no platform policy to override, this
-/// feature would be enabled as per its PCI specification based on the device
-/// capabilities. Below is its data type and the macro definitions which the
-/// driver uses for interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_EXTENDED_SYNCH;
-
-#define EFI_PCI_EXPRESS_EXT_SYNCH_AUTO    0x00  //No request for override
-#define EFI_PCI_EXPRESS_EXT_SYNCH_DISABLE 0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_EXT_SYNCH_ENABLE  0x02  //set to enable state
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe Device's AtomicOp Requester enable or disable, as well
-/// as its Egress blocking based on the port's routing capability.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.16), on how to translate
-/// the given data structure as per the PCI hardware terminology.
-/// If the data member "Override" value is 0 than there is no platform policy to
-/// override, other data members value must be ignored. If 1 than other data
-/// members will be used as per the device capabilities. Below is its data type
-/// definitions which the driver uses for interpreting the platform policy.
-///
-typedef struct _EFI_PCI_EXPRESS_ATOMIC_OP EFI_PCI_EXPRESS_ATOMIC_OP;
-
-struct _EFI_PCI_EXPRESS_ATOMIC_OP {
-  //
-  // set to indicate the platform request to override based on below data member
-  // bit fields; clear bit indicates no platform request to override and the other
-  // data member bit fields are not applicable.
-  // Ignored when passed as input parameters.
-  //
-  UINT8   Override:1;
-  //
-  // set to enable the device as the requester for AtomicOp; clear bit to force
-  // default disable state
-  //
-  UINT8   Enable_AtomicOpRequester:1;
-  //
-  // set to enable the AtomicOp Egress blocking on this port based on its routing
-  // capability; clear bit to force default disable state
-  //
-  UINT8   Enable_AtomicOpEgressBlocking:1;
-  //
-  // the remaining bits are unused for this feature
-  //
-  UINT8   Reserved:5;
-};
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe Device's LTR Mechanism enable/disable.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.16), on how to translate
-/// the below EFI encodings as per the PCI hardware terminology. If this data member
-/// value is returned as 0 than there is no platform policy to override, this
-/// feature would be enabled as per its PCI specification based on the device
-/// capabilities. Below is its data type and the macro definitions which the
-/// driver uses for interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_LTR;
-
-#define EFI_PCI_EXPRESS_LTR_AUTO    0x00  //No request for override
-#define EFI_PCI_EXPRESS_LTR_DISABLE 0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_LTR_ENABLE  0x02  //set to enable state
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe Device's Precision Time Measurement (PTM) enable/disable.
-/// Refer to PCI Express Base Specification 4 (chapter 7.5.3.16), on how to translate the
-/// below EFI encodings as per the PCI hardware terminology. If this data member
-/// value is returned as 0 than there is no platform policy to override, this
-/// feature would be enabled as per its PCI specification based on the device
-/// capabilities. Below is its data type and the macro definitions which the
-/// driver uses for interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_PTM;
-
-#define EFI_PCI_EXPRESS_PTM_AUTO      0x00  //No request for override
-#define EFI_PCI_EXPRESS_PTM_DISABLE   0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_PTM_ENABLE    0x02  //set to enable state only
-#define EFI_PCI_EXPRESS_PTM_ROOT_SEL  0x02  //set to root select & enable
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe Device's Completion Timeout (CTO) set to supported ranges
-/// or disable. Refer to PCI Express Base Specification 4 (chapter 7.5.3.16), on how to
-/// translate the below EFI encodings as per the PCI hardware terminology. If this
-/// data member value is returned as 0 than there is no platform policy to override,
-/// this feature would be enabled as per its PCI specification based on the device
-/// capabilities. Below is its data type and the macro definitions which the
-/// driver uses for interpreting the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_CTO_SUPPORT;
-
-#define EFI_PCI_EXPRESS_CTO_AUTO        0x00  //No request for override
-#define EFI_PCI_EXPRESS_CTO_DEFAULT     0x01  //set to default range of 5us to 50ms if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_A1    0x02  //set to range of 50us to 100us if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_A2    0x03  //set to range of 1ms to 10ms if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_B1    0x04  //set to range of 16ms to 55ms if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_B2    0x05  //set to range of 65ms to 210ms if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_C1    0x06  //set to range of 260ms to 900ms if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_C2    0x07  //set to range of 1s to 3.5s if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_D1    0x08  //set to range of 4s to 13s if applicable
-#define EFI_PCI_EXPRESS_CTO_RANGE_D2    0x09  //set to range of 17s to 64s if applicable
-#define EFI_PCI_EXPRESS_CTO_DET_DISABLE 0x10  //set to CTO detection disable if applicable
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe link's Clock Power Management (CPM) enable or disable.
-/// Refer to PCI Express Base Specification 5 (chapter 7.5.3.7), on how to translate
-/// the below EFI encodings as per the PCI hardware terminology. If this data member
-/// value is returned as 0 than there is no platform policy to override, this
-/// feature would be ignored or disabled/enabled, as per its relation with other
-/// components and its capabilities, as defined in its PCI specification. Below
-/// is its data type and the macro definitions which the driver uses for interpreting
-/// the platform policy.
-///
-typedef UINT8 EFI_PCI_EXPRESS_CPM;
-
-#define EFI_PCI_EXPRESS_CPM_AUTO    0x00  //No request for override
-#define EFI_PCI_EXPRESS_CPM_DISABLE 0x01  //set to default disable state
-#define EFI_PCI_EXPRESS_CPM_ENABLE  0x02  //set to enable state
-
-///
-/// This data type is to retrieve the PCI device platform policy for the PCI
-/// Express feature PCIe link's L1 PM Substates.
-/// Refer to PCI Express Base Specification 5 (chapter 7.8.3.3), on how to translate
-/// the given data structure as per the PCI hardware terminology. If the data member
-/// "Override" value is 0 than there is no platform policy to override, other data
-/// members will be ignored; if 1 than other data members are used for this feature,
-/// to align the states based on its capabilities as well as its relationship with
-/// other components in the PCI hierarchy. The platform is expected to return any
-/// combination from the four L1 PM Substates.
-/// Below is its data type definitions which the driver uses for interpreting
-/// the platform policy.
-///
-typedef struct _EFI_PCI_EXPRESS_L1PM_SUBSTATES EFI_PCI_EXPRESS_L1PM_SUBSTATES;
-
-struct _EFI_PCI_EXPRESS_L1PM_SUBSTATES {
-  //
-  // set to indicate the platform request to override the L1 PM Substates using
-  // the other data member bit fields; bit clear means no request from platform
-  // to override the L1 PM Substates for the device. Ignored when passed as input
-  // parameters.
-  //
-  UINT8 Override:1;
-  //
-  // set to enable the PCI-PM L1.2 state; bit clear to force default disable state
-  //
-  UINT8 Enable_Pci_Pm_L1_2:1;
-  //
-  // set to enable the PCI-PM L1.1 state; bit clear to force default disable state
-  //
-  UINT8 Enable_Pci_Pm_L1_1:1;
-  //
-  // set to enable the ASPM L1.2 state; bit clear to force default disable state
-  //
-  UINT8 Enable_Aspm_L1_2:1;
-  //
-  // set to enable the ASPM L1.1 state; bit clear to force default disable state
-  //
-  UINT8 Enable_Aspm_L1_1:1;
-  //
-  // rest of the remaining bits are reserved, not utilized; can be reused in
-  // future to define additional conditions as per PCIe capabilities
-  //
-  UINT8 Reserved:3;
-};
+#define EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO            0xFF
+#define EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE  0xFE
 
 ///
 /// The EFI_PCI_EXPRESS_DEVICE_POLICY size is fixed as per its definition corresponding
@@ -366,65 +57,228 @@ struct _EFI_PCI_EXPRESS_L1PM_SUBSTATES {
 /// of its attributes, defined in the PCI Express Base Specification.
 ///
 typedef struct {
-  EFI_PCI_EXPRESS_MAX_PAYLOAD_SIZE  DeviceCtlMPS;
-  EFI_PCI_EXPRESS_MAX_READ_REQ_SIZE DeviceCtlMRRS;
-  EFI_PCI_EXPRESS_EXTENDED_TAG      DeviceCtlExtTag;
-  EFI_PCI_EXPRESS_RELAX_ORDER       DeviceCtlRelaxOrder;
-  EFI_PCI_EXPRESS_NO_SNOOP          DeviceCtlNoSnoop;
-  EFI_PCI_EXPRESS_ASPM_SUPPORT      LinkCtlASPMState;
-  EFI_PCI_EXPRESS_COMMON_CLOCK_CFG  LinkCtlCommonClkCfg;
-  EFI_PCI_EXPRESS_EXTENDED_SYNCH    LinkCtlExtSynch;
-  EFI_PCI_EXPRESS_ATOMIC_OP         DeviceCtl2AtomicOp;
-  EFI_PCI_EXPRESS_LTR               DeviceCtl2LTR;
-  EFI_PCI_EXPRESS_PTM               PTMControl;
-  EFI_PCI_EXPRESS_CTO_SUPPORT       CTOsupport;
-  EFI_PCI_EXPRESS_CPM               LinkCtlCPM;
-  EFI_PCI_EXPRESS_L1PM_SUBSTATES    L1PMSubstates;
+
+  //
+  // For PCI Express feature - Maximum Payload Size
+  //
+  // Bit 0 - 2 should match with the definition of the "Max_Payload_Size" register
+  // field of the Device Control Register (Offset 08h) in the PCI Express Base
+  // Specification Revision 5, section 7.5.3.4 , for a valid device policy.
+  // The device policy AUTO shall be used to set the payload size as per the Device
+  // Capability register "Max_Payload_Size Supported" field, and by aligning to a
+  // common value supported among all the devices in the tree.
+  // The device policy NOT_APPLICABLE shall be used to skip programming of the
+  // maximum payload size of a device.
+  //
+  UINT8                          MaxPayloadSize;
+
+  //
+  // For PCI Express feature - Maximum Read Request Size
+  //
+  // Bit 0 - 2 should match with the definition of the "Max_Read_Request_Size"
+  // register field of the Device Control Register (Offset 08h) in the PCI Express
+  // Base Specification Revision 5, section 7.5.3.4, for a valid device policy.
+  // The device policy AUTO shall be used to set the Memory read request size as
+  // per the device "Max_Payload_Size" value.
+  // The device policy NOT_APPLICABLE shall be used to skip programming of the
+  // Maximum Read Request Size in the Device Control register
+  //
+  UINT8                          MaxReadRequestSize;
+
+  //
+  // For PCI Express feature - Extended Tag
+  //
+  // Bit 0 = 1 enables the 8b Extended Tag, else 5b Extended Tag.
+  // Bit 1 = 1 enables the 10b Extended Tag as a requester, else Bit 0 value gets
+  // applied.
+  // Bit 0 should match with the definition of the Device Control register Extended
+  // Tag Field Enable (bit 8) of the PCI Express Base Specification Revision 5,
+  // section 7.5.3.4.
+  // Bit 1 should match with the definition of the Device Control2 register 10-Bit
+  // Tag Requester Enable (bit 12) of the PCI Express Base Specification Revision 5,
+  // section 7.5.3.16.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  // The device policy from platform can be different for the RP and its EP device;
+  // however if the device capability does not match with the policy than it shall
+  // be ignored. For example; if the policy for EP is to set the 10b Extended Tag
+  // than EP device capability as a requester and its RP completer capability is
+  // checked. If platform ask policy change only for RP than its device capability
+  // is checked to enable the 10b Extended Tag.
+  //
+  UINT8                          ExtendedTag;
+
+  //
+  // For PCI Express feature - Relaxed Ordering
+  //
+  // Bit 0 = 1 Enable Relaxed Ordering, else disable.
+  // Bit 0 should match with the definition of the Device Control register Enable
+  // Relaxed Ordering (bit 4) of the PCI Express Base Specification Revision 5,
+  // section 7.5.3.4.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  //
+  UINT8                          RelaxedOrdering;
+
+  //
+  // For PCI Express feature - No-Snoop
+  //
+  // Bit 0 = 1 Enable No Snoop, else disable.
+  // Bit 0 should match with the definition of the Device Control register Enable
+  // No Snoop (bit 11) of the PCI Express Base Specification Revision 5, section
+  // 7.5.3.4.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  //
+  UINT8                          NoSnoop;
+
+  //
+  // For PCI Express feature - ASPM state
+  //
+  // Bit 0 - 1 should match with the definition of the "ASPM Control" register field
+  // of the Link Control Register (Offset 10h) in the PCI Express Base Specification
+  // Revision 5, section 7.5.3.7.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  // The device policy of the PCIe Root Port only shall be consider for the entire
+  // device tree; ignored for all other devices (EP and RCiEP).
+  //
+  UINT8                          AspmControl;
+
+  //
+  // For PCI Express feature - Common Clock Configuration
+  //
+  // The device policy AUTO shall be used to set the Common Clock Configuration
+  // (bit 6) of the Link Control register as per the device's Link Status register
+  // Slot Clock Configuration (bit 12) value.
+  // The device policy NOT_APPLICABLE shall be used to skip programming of the Common
+  // Clock Configuration of the device.
+  //
+  UINT8                          CommonClockConfiguration;
+
+  //
+  // For PCI Express feature - Atomic Op
+  //
+  // Bit 0 = 1 to enable the device as the AtomicOp Requester, else disable
+  // Bit 1 = 1 to block the incoming AtomicOp Requests going out of its Egress
+  // Port (enable Egress blocking for Switch upstream/downstream ports and RP).
+  // Bit 0,1 should match with the definition of the of the Device Control2 Register
+  // (offset 28h) bit 6,7 named "AtomicOp Requester Enable" and "AtomicOp Egress
+  // Blocking" respectively, as in the PCI Express Base Specification Revision
+  // 5, section 7.5.3.16.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  // The Bit 1 device policy shall be applied only based on the Device Capability2
+  // register field "AtomicOp Routing Supported" (bit 6).
+  //
+  UINT8                          AtomicOp;
+
+  //
+  // For PCI Express feature - LTR
+  //
+  // Bit 0 = 1 enables the LTR mechanism, else disables.
+  // Bit 0 should match with the definition of "LTR Mechanism Enable" (bit 10)
+  // of the Device Control 2 Register (Offset 28h) in the PCI Express Base Specification
+  // Revision 5, section 7.5.3.16.
+  // As per its specification, LTR can be enabled on a EP device if all the devices
+  // along the path to RC supports the LTR capability and are enabled.
+  // The platform is responsible to provide consist device policy for all the
+  // devices in an hierarchy; if RP policy is enable and EP policy is disable,
+  // they are permissible but no usage of feature as EP will not send LTR message
+  // to RP. Platform should not provide policy for RP as disable and EP as enable,
+  // as it shall result in Unsupported Request error. To avoid erroneous scenario
+  // even the EP shall be disabled, along with its RP.
+  // The device policy AUTO or NOT_APPLICABLE provided to EP shall be treated as
+  // mo LTR programming from the path of EP to parent RP. If same is provided for
+  // RP than its policy is replaced with the policy of its child device.
+  // The device policy is applicable if that is supported by LTR capability.
+  //
+  UINT8                          Ltr;
+
+  //
+  // For PCI Express feature - PTM
+  //
+  // Bit 0 = PTM Enable, if 1 enables the PTM mechanism as per device role's
+  // capability, else disables the PTM mechanism of the device.
+  // Bit 0 should match with the definition of the PCI Express Base Specification
+  // Revision 5, section 7.9.16.3 of the PTM Control Register (offset 08h).
+  // The device policy AUTO shall be used to set the PTM feature as per the device
+  // PTM Capability structure.
+  // The device policy NOT_APPLICABLE shall be used to prevent the PTM feature
+  // enabling for certain device, or for entire PCIe hierarchy.
+  // It is platform responsibility to maintain valid policies for all the PCIe
+  // devices in the device tree. Invalid combination of device policies in the
+  // device tree shall be ignored (for example port is provided wtih NOT_APPLICABLE
+  // while the EP device is provided with the AUTO policy).
+  //
+  UINT8                          Ptm;
+
+  //
+  // For PCI Express feature - Completion Timeout
+  //
+  // Bit 0 - 4 should match with the definition of the register fields "Completion
+  // Timeout Value" (bit 0 - 3), and "Completion Timeout Disable" (bit 4) of the
+  // PCI Express Base Specification Revision 5, section 7.5.3.16 Device Control
+  // 2 Register (Offset 28h), for a valid device policy.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  // The device policy is applicable if that is supported in the device capability.
+  //
+  UINT8                          CompletionTimeout;
+
+  //
+  // For PCI Express feature - Clock Power Management
+  //
+  // Bit 0 = Enable Clock Power Management (value 1), else disable.
+  // Bit 0 should match with the definition of the PCI Express Base Specification
+  // Revision 5, section 7.5.3.7 of the Link Control Register (offset 10h) bit 8.
+  // This device policy shall be applied based on device Link Capability register
+  // value of bit 18 of offset 0Ch.
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  //
+  UINT8                          ClockPowerManagement;
+
+  //
+  // For PCI Express feature - L1 PM Substates
+  //
+  // Bit 0 = PCI-PM L1.2 Enable, Bit 1 = PCI-PM L1.1 Enable, Bit 2 = ASPM L1.2 Enable,
+  // Bit 3 = ASPM L1.1 Enable; if set enables L1 substates else disables.
+  // Bit 0 - 3 should match with the definition of the PCI Express Base Specification
+  // Revision 5, section 7.8.3.3 of L1 PM Substates Control 1 Register (Offset 08h).
+  // The device policy AUTO or NOT_APPLICABLE shall be treated as "do not touch".
+  // The device policy of only the PCIe Root Port should be consider for the entire
+  // device tree; ignored for all other devices (EP and RCiEP).
+  //
+  UINT8                           L1PmSubstates;
 } EFI_PCI_EXPRESS_DEVICE_POLICY;
 
 ///
-/// The EFI_PCI_EXPRESS_DEVICE_CONFIGURATION is an alias of the data type of
-/// EFI_PCI_EXPRESS_DEVICE_POLICY, used in notifying the platform about the
-/// PCI Express features device configured states, through the NotifyDeviceState
-/// interface method.
-/// The EFI encoded macros like EFI_PCI_EXPRESS_*_AUTO, with the value 0 will not
-/// be used to report the PCI feature definite state; similarly for the data type
-/// of DeviceCtl2AtomicOp and L1PMSubstates, its data member "Override" will not
-/// be used. For any of the device's PCI features that are not supported, or its
-/// state is unknown, it will be returned as EFI_PCI_EXPRESS_NOT_APPLICABLE.
+/// The EFI_PCI_EXPRESS_DEVICE_STATE is an alias of EFI_PCI_EXPRESS_DEVICE_POLICY,
+/// used for notification to the platform about the device PCI Express features
+/// state, through the NotifyDeviceState interface method.
+/// For any of the device's PCIe features that are not supported, or its
+/// state is unknown, it will be returned as EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE.
 ///
-typedef EFI_PCI_EXPRESS_DEVICE_POLICY EFI_PCI_EXPRESS_DEVICE_CONFIGURATION;
+typedef EFI_PCI_EXPRESS_DEVICE_POLICY EFI_PCI_EXPRESS_DEVICE_STATE;
 
 /**
-  Interface to retrieve the PCI device-specific platform policies to override
-  the PCI Express feature capabilities, of an PCI device.
+  Interface to receive the PCIe features device policy from platform.
 
   The consumer driver(s), like PCI Bus driver and PCI Host Bridge Resource Allocation
   Protocol drivers; can call this member function to retrieve the platform policies
   specific to PCI device, related to its PCI Express capabilities. The producer of
-  this protocol is platform whom shall provide the device-specific pilicies to
-  override its PCIe features.
+  this protocol shall be the platform itself to provide the device-specific policies.
 
-  The GetDevicePolicy() member function is meant to return data about other PCI
-  Express features which would be supported by the PCI Bus driver in future;
-  like for example the MPS, MRRS, Extended Tag, ASPM, etc. The details about
-  this PCI features can be obtained from the PCI Express Base Specification (Rev.4
-  or 5). The EFI encodings for these features are defined in the EFI_PCI_EXPRESS
-  _PLATFORM_POLICY, see the Related Definition section for this. This member function
+  The GetDevicePolicy() member function is meant to return data about the PCIe
+  features like the MPS, MRRS, Extended Tag, ASPM, etc. The details about
+  these PCIe features can be obtained from the PCI Express Base Specification (Rev.4
+  or 5). The EFI encodings are defined in the EFI_PCI_EXPRESS_PLATFORM_POLICY,
+  see the Related Definition section for this. This member function
   will use the associated EFI handle of the root bridge instance and the PCI address
   of type EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_PCI_ADDRESS to determine the physical
-  PCI device within the chipset, to return its device-specific platform policies.
+  PCI device within the chipset.
   It is caller's responsibility to allocate the buffer and pass its pointer of
   type EFI_PCI_EXPRESS_DEVICE_POLICY to this member function, to get its device
   -specific policy data.
   The caller is required to initialize the input buffer with either of two values:-
-  1.  EFI_PCI_EXPRESS_NOT_APPLICABLE: for those PCI Express features which are not
-      supported by the calling driver
-  2.  EFI_PCI_EXPRESS_*_AUTO: for those PCI Express features which are supported
-      by the calling driver
-  In order to skip any PCI Express feature for any particular PCI device, this
-  interface is expected to return its hardware default state as defined by the
-  PCI Express Base Specification.
+  1.  EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE: for those PCI Express features
+      which are not supported by the calling driver
+  2.  EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO: for those PCI Express features which
+      are supported by the calling driver
 
   @param[in]      This          Pointer to the  EFI_PCI_EXPRESS_PLATFORM_PROTOCOL instance.
   @param[in]      RootBridge    EFI handle of associated root bridge to the PCI device
@@ -434,8 +288,8 @@ typedef EFI_PCI_EXPRESS_DEVICE_POLICY EFI_PCI_EXPRESS_DEVICE_CONFIGURATION;
                                 device. See UEFI 2.1 Specification for the definition
                                 of EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_PCI_ADDRESS.
   @param[in]      Size          The size, in bytes, of the input buffer, in next parameter.
-  @param[in,out]  PciExPolicy   The pointer to platform policy with respect to other
-                                PCI features like, the MPS, MRRS, etc. Type
+  @param[in,out]  PciePolicy    The pointer to buffer containing the device policies for
+                                PCIe features like, the MPS, MRRS, etc. Type
                                 EFI_PCI_EXPRESS_DEVICE_POLICY is defined above.
 
 
@@ -454,15 +308,14 @@ EFI_STATUS
   IN        EFI_HANDLE                                    RootBridge,
   IN        EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_PCI_ADDRESS   PciAddress,
   IN        UINTN                                         Size,
-  IN OUT    EFI_PCI_EXPRESS_DEVICE_POLICY                 *PciExPolicy
+  IN OUT    EFI_PCI_EXPRESS_DEVICE_POLICY                 *PciePolicy
 );
 
 /**
-  Notifies the platform about the PCI device current configuration state w.r.t.
-  its PCIe capabilites.
+  Notifies the platform about the PCI device current state of its PCIe capabilites.
 
   The PCI Bus driver or PCI Host Bridge Resource Allocation Protocol drivers
-  can call this member function to notfy the present PCIe configuration state
+  can call this member function to notify the present PCIe configuration state
   of the PCI device, to the platform. This is expected to be invoked after the
   completion of the PCI enumeration phase.
 
@@ -472,32 +325,29 @@ EFI_STATUS
   etc. The details about this PCI features can be obtained from the PCI Express
   Base Specification.
 
-  The EFI encodings and data types used to report out the present configuration
-  state, are same as those that were used by the platform to return the device-specific
+  The EFI encodings and data types used to report out the current state, are
+  same as those that were used by the platform to return the device-specific
   platform policies, in the EFI_PCI_EXPRESS_DEVICE_POLICY (see the "Related
   Definition" section for this). The difference is that it should return the actual
-  state in the EFI_PCI_EXPRESS_DEVICE_CONFIGURATION; without any macros corresponding
-  to EFI_PCI_EXPRESS_*_AUTO, and for the data types of DeviceCtl2AtomicOp and
-  L1PMSubstates, its corresponding data member "Override" bit field value shall be
-  ignored, will not be applicable. Note that, if the notifying driver does not
+  state in the EFI_PCI_EXPRESS_DEVICE_STATE; without any macros corresponding
+  to EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO. Note that, if the notifying driver does not
   support any PCIe feature than it shall return its corresponding value as
-  EFI_PCI_EXPRESS_NOT_APPLICABLE.
+  EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE.
 
   This member function will use the associated EFI handle of the PCI IO Protocol
   to address the physical PCI device within the chipset. It is caller's
   responsibility to allocate the buffer and pass its pointer to this member
   function.
 
-  @param[in]  This                      Pointer to the  EFI_PCI_EXPRESS_PLATFORM_PROTOCOL instance.
-  @param[in]  PciDevice                 The associated PCI IO Protocol handle of the PCI
-                                        device. Type EFI_HANDLE is defined in
-                                        InstallProtocolInterface() in the UEFI 2.1
-                                        Specification
-  @param[in] Size                       The size, in bytes, of the input buffer in next parameter.
-  @param[in] PciExDeviceConfiguration   The pointer to device configuration state with respect
-                                        to other PCI features like, the MPS, MRRS, etc. Type
-                                        EFI_PCI_EXPRESS_DEVICE_CONFIGURATION is an alias to
-                                        EFI_PCI_EXPRESS_DEVICE_POLICY, as defined above.
+  @param[in]  This          Pointer to the  EFI_PCI_EXPRESS_PLATFORM_PROTOCOL instance.
+  @param[in]  PciDevice     The associated PCI IO Protocol handle of the PCI
+                            device. Type EFI_HANDLE is defined in
+                            InstallProtocolInterface() in the UEFI 2.1 Specification
+  @param[in] Size           The size, in bytes, of the input buffer in next parameter.
+  @param[in] PcieState      The pointer to device configuration state with respect
+                            to other PCI features like, the MPS, MRRS, etc. Type
+                            EFI_PCI_EXPRESS_DEVICE_STATE is an alias to
+                            EFI_PCI_EXPRESS_DEVICE_POLICY, as defined above.
 
 
   @retval EFI_SUCCESS             This function completed successfully, the platform
@@ -513,7 +363,7 @@ EFI_STATUS
   IN CONST  EFI_PCI_EXPRESS_PLATFORM_PROTOCOL     *This,
   IN        EFI_HANDLE                            PciDevice,
   IN        UINTN                                 Size,
-  IN        EFI_PCI_EXPRESS_DEVICE_CONFIGURATION  *PciExDeviceConfiguration
+  IN        EFI_PCI_EXPRESS_DEVICE_STATE          *PcieState
   );
 
 ///
@@ -527,21 +377,21 @@ EFI_STATUS
 ///
 typedef struct {
   //
-  // For PCI Express feature - Max. Payload Size
+  // For PCI Express feature - Maximum Payload Size
   //
-  BOOLEAN  Mps;
+  BOOLEAN  MaxPayloadSize;
   //
-  // For PCI Express feature - Max. Read Request Size
+  // For PCI Express feature - Maximum Read Request Size
   //
-  BOOLEAN  Mrrs;
+  BOOLEAN  MaxReadRequestSize;
   //
   // For PCI Express feature - Extended Tag
   //
-  BOOLEAN  ExtTag;
+  BOOLEAN  ExtendedTag;
   //
-  // For PCI Express feature - Relax Order
+  // For PCI Express feature - Relaxed Ordering
   //
-  BOOLEAN  RelaxOrder;
+  BOOLEAN  RelaxedOrdering;
   //
   // For PCI Express feature - No-Snoop
   //
@@ -553,11 +403,7 @@ typedef struct {
   //
   // For PCI Express feature - Common Clock Configuration
   //
-  BOOLEAN  Ccc;
-  //
-  // For PCI Express feature - Extended Sync
-  //
-  BOOLEAN  ExtSync;
+  BOOLEAN  CommonClockConfiguration;
   //
   // For PCI Express feature - Atomic Op
   //
@@ -573,11 +419,11 @@ typedef struct {
   //
   // For PCI Express feature - Completion Timeout
   //
-  BOOLEAN  Cto;
+  BOOLEAN  CompletionTimeout;
   //
   // For PCI Express feature - Clock Power Management
   //
-  BOOLEAN  Cpm;
+  BOOLEAN  ClockPowerManagement;
   //
   // For PCI Express feature - L1 PM Substates
   //
@@ -587,14 +433,14 @@ typedef struct {
 
 /**
   Informs the platform about its PCI Express features support capability and it
-  accepts request from platform to initialize only those features.
+  accepts request from platform to initialize those features.
 
   The caller shall first invoke this interface to inform platform about the list
-  of PCI Express feature supported, in the buffer of type EFI_PCI_EXPRESS_PLATFORM_POLICY.
-  On return, it expects the list of supported PCI Express features that are required
-  to be configured; in the same form with the value of TRUE. The caller shall
-  ignore the feature request if its value is TRUE if that feature was initialized
-  as FALSE when it was passed as the input parameter.
+  of PCI Express feature that are supported by passing its value as TRUE, and value
+  FALSE for unsupported features, in the buffer of type EFI_PCI_EXPRESS_PLATFORM_POLICY.
+  On return, it expects the list of supported PCI Express features as a requirement
+  from platform; if its return value is TRUE. The caller shall ignore invalid TRUE
+  values.
 
   The caller shall treat this list of PCI Express features as the global platform
   requirement; and corresponding to that feature list it expects device-specific
@@ -609,8 +455,8 @@ typedef struct {
   The protocol producing driver shall use the size input parameter to determine
   the length of the buffer of type EFI_PCI_EXPRESS_PLATFORM_POLICY, and to also
   determine version of the caller. If the size of the input buffer is more than
-  what its supporting version (indicated through the MajorVersion and MinorVersion
-  data members of the protocol) than it shall return EFI_INVALID_PARAMETER.
+  what its supporting version (indicated through the Revision data member of the
+  protocol) than it shall return EFI_INVALID_PARAMETER.
 
   The error code in returned status essential means that the caller cannot initialize
   any PCI Express features. Thus, this interface would be primary interface for the
@@ -645,19 +491,25 @@ EFI_STATUS
 );
 
 ///
+/// The revision of the PCI Express Protocol is represented as 32-bit value
+/// with the lower WORD representing the Minor value and upper WORD
+/// representing the Major value.
+/// As per the specification of this protocol, the revision is 1.1.
+/// Any driver utilizing this protocol shall use the revision number to
+/// maintain the backward compatibility.
+///
+#define EFI_PCI_EXPRESS_PLATFORM_PROTOCOL_REVISION 0x00010001
+
+///
 /// This protocol provides the interface between the PCI bus driver/PCI Host
 /// Bridge Resource Allocation driver and a platform-specific driver to describe
 /// the unique PCI Express features of a platform.
 ///
 struct _EFI_PCI_EXPRESS_PLATFORM_PROTOCOL {
   ///
-  /// The major version of this PCIe Platform Protocol
+  /// The revision of this PCIe Platform Protocol
   ///
-  UINT8                                  MajorVersion;
-  ///
-  /// The minor version of this PCIe Platform Protocol
-  ///
-  UINT8                                  MinorVersion;
+  UINT32                                 Revision;
   ///
   /// Retrieves the PCIe device-specific platform policy regarding enumeration.
   ///
