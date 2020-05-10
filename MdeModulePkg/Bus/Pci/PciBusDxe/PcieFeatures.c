@@ -614,3 +614,182 @@ AtomicOpProgram (
   return EFI_SUCCESS;
 }
 
+/**
+  Record the parent Root Port 10b Extended Tag Completer capability.
+
+  @param PciDevice              A pointer to the PCI_IO_DEVICE.
+  @param Level                  The level of the PCI device in the heirarchy.
+                                Level of root ports is 0.
+  @param Context                Pointer to feature specific context.
+**/
+STATIC
+VOID
+ExtendedTagCheck (
+  IN PCI_IO_DEVICE *PciDevice,
+  IN UINTN         Level,
+  IN VOID          **Context
+  )
+{
+  BOOLEAN                          *TenBitCompleterCapable;
+
+  DEBUG ((
+    DEBUG_INFO, "  %a [%02d|%02d|%02d]: Capability = %x",
+    __FUNCTION__, PciDevice->BusNumber, PciDevice->DeviceNumber, PciDevice->FunctionNumber,
+    PciDevice->PciExpressCapability.DeviceCapability.Bits.ExtendedTagField
+    ));
+  DEBUG ((
+    DEBUG_INFO, "  Capability2 = [%x, %x]\n",
+    PciDevice->PciExpressCapability.DeviceCapability2.Bits.TenBitTagRequesterSupported,
+    PciDevice->PciExpressCapability.DeviceCapability2.Bits.TenBitTagCompleterSupported
+    ));
+
+  TenBitCompleterCapable = *Context;
+  if (TenBitCompleterCapable == NULL) {
+    TenBitCompleterCapable = AllocatePool (sizeof (*TenBitCompleterCapable));
+    *Context = TenBitCompleterCapable;
+  }
+  if (Level == 1) {
+    *TenBitCompleterCapable = (BOOLEAN)
+        (PciDevice->PciExpressCapability.DeviceCapability2.Bits.TenBitTagCompleterSupported);
+  }
+}
+
+/**
+  Program PCIe feature ExtendedTag.
+
+  @param PciIoDevice            A pointer to the PCI_IO_DEVICE.
+  @param Level                  The level of the PCI device in the heirarchy.
+                                Level of root ports is 0.
+  @param Context                Pointer to feature specific context.
+
+  @retval EFI_SUCCESS           setup of PCI feature ExtendedTag is successful.
+  @retval EFI_UNSUPPORTED       The address range specified by Offset, Width, and Count is not
+                                valid for the PCI configuration header of the PCI controller.
+  @retval EFI_INVALID_PARAMETER Buffer is NULL or Width is invalid.
+**/
+EFI_STATUS
+ExtendedTagProgram (
+  IN  PCI_IO_DEVICE *PciIoDevice,
+  IN  UINTN         Level,
+  IN  VOID          **Context
+  )
+{
+  BOOLEAN                       *TenBitCompleterCapable;
+  PCI_REG_PCIE_DEVICE_CONTROL2  DeviceCtl2;
+  PCI_REG_PCIE_DEVICE_CONTROL   DeviceCtl;
+  EFI_STATUS                    Status;
+
+  if (PciIoDevice->DeviceState.ExtendedTag == EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO ||
+      PciIoDevice->DeviceState.ExtendedTag == EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE) {
+    return EFI_SUCCESS;
+  }
+
+  //
+  // BIT0 of the policy value is for 5b or 8b Extended Tag (DeviceControl BIT8)
+  // BIT1 of the policy value is for 10b Extended Tag (DeviceControl2 BIT12)
+  //
+  if ((PciIoDevice->DeviceState.ExtendedTag >> 2) != 0) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // check and prepare the context for the Extended Tag Completer capability
+  //
+  ExtendedTagCheck (PciIoDevice, Level, Context);
+
+  //
+  // start with no change to device 10b Requester Enable state
+  //
+  DeviceCtl2.Bits.TenBitTagRequesterEnable = 0;
+
+  //
+  // the device should be capable of 10b Extended Tag Requester
+  //
+  if ((PciIoDevice->DeviceState.ExtendedTag & BIT1) &&
+      (PciIoDevice->PciExpressCapability.DeviceCapability2.Bits.TenBitTagRequesterSupported)) {
+    //
+    // for the Endpoint device 10b Extended Tag Requester Enable, the RC should be
+    // 10b Completer capable
+    //
+    if (PciIoDevice->PciExpressCapability.Capability.Bits.DevicePortType == PCIE_DEVICE_PORT_TYPE_PCIE_ENDPOINT ||
+        PciIoDevice->PciExpressCapability.Capability.Bits.DevicePortType == PCIE_DEVICE_PORT_TYPE_LEGACY_PCIE_ENDPOINT) {
+      //
+      // check the parent Root Port 10b Extended Tag Completer Capability
+      //
+      TenBitCompleterCapable = *Context;
+      if (*TenBitCompleterCapable == TRUE) {
+        //
+        // since the RC is 10b COmpleter capable, enable the EP as 10b Requester
+        //
+        DeviceCtl2.Bits.TenBitTagRequesterEnable = 1;
+      }
+    } else {
+      //
+      // enable the device as 10b Requester if it is capable and per platform ask
+      //
+      DeviceCtl2.Bits.TenBitTagRequesterEnable = 1;
+    }
+    //
+    // write DeviceControl2 register for 10b Extended Tag Requester state
+    //
+    if (DeviceCtl2.Bits.TenBitTagRequesterEnable !=
+        PciIoDevice->PciExpressCapability.DeviceControl2.Bits.TenBitTagRequesterEnable) {
+
+        DEBUG ((
+          DEBUG_INFO, "  %a [%02d|%02d|%02d]: %x -> %x.\n",
+          __FUNCTION__, PciIoDevice->BusNumber, PciIoDevice->DeviceNumber, PciIoDevice->FunctionNumber,
+          PciIoDevice->PciExpressCapability.DeviceControl2.Bits.TenBitTagRequesterEnable,
+          DeviceCtl2.Bits.TenBitTagRequesterEnable
+          ));
+        PciIoDevice->PciExpressCapability.DeviceControl2.Bits.TenBitTagRequesterEnable =
+          DeviceCtl2.Bits.TenBitTagRequesterEnable;
+
+        Status = PciIoDevice->PciIo.Pci.Write (
+                                        &PciIoDevice->PciIo,
+                                        EfiPciIoWidthUint16,
+                                        PciIoDevice->PciExpressCapabilityOffset
+                                        + OFFSET_OF (PCI_CAPABILITY_PCIEXP, DeviceControl2),
+                                        1,
+                                        &PciIoDevice->PciExpressCapability.DeviceControl2.Uint16
+                                        );
+        if (EFI_ERROR(Status)) {
+          return Status;
+        }
+    }
+  }
+
+  //
+  // if no 10b Extended Tag Requester for this device than consider 8b or 5b Extended Requester
+  //
+  if (!DeviceCtl2.Bits.TenBitTagRequesterEnable) {
+    //
+    // the device should be capable of 8b Extended Tag Requester
+    //
+    DeviceCtl.Bits.ExtendedTagField = (UINT16)
+              ((PciIoDevice->DeviceState.ExtendedTag & BIT0) &&
+               (PciIoDevice->PciExpressCapability.DeviceCapability.Bits.ExtendedTagField));
+
+    if (DeviceCtl.Bits.ExtendedTagField !=
+        PciIoDevice->PciExpressCapability.DeviceControl.Bits.ExtendedTagField) {
+      DEBUG ((
+          DEBUG_INFO, "  %a [%02d|%02d|%02d]: %x -> %x.\n",
+          __FUNCTION__, PciIoDevice->BusNumber, PciIoDevice->DeviceNumber, PciIoDevice->FunctionNumber,
+          PciIoDevice->PciExpressCapability.DeviceControl.Bits.ExtendedTagField,
+          DeviceCtl.Bits.ExtendedTagField
+          ));
+      PciIoDevice->PciExpressCapability.DeviceControl.Bits.ExtendedTagField = DeviceCtl.Bits.ExtendedTagField;
+
+      return PciIoDevice->PciIo.Pci.Write (
+                                    &PciIoDevice->PciIo,
+                                    EfiPciIoWidthUint16,
+                                    PciIoDevice->PciExpressCapabilityOffset
+                                    + OFFSET_OF (PCI_CAPABILITY_PCIEXP, DeviceControl),
+                                    1,
+                                    &PciIoDevice->PciExpressCapability.DeviceControl.Uint16
+                                    );
+    }
+  }
+
+  return EFI_SUCCESS;
+}
+

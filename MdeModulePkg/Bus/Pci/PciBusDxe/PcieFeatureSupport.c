@@ -66,6 +66,8 @@ PCIE_FEATURE_ENTRY  mPcieFeatures[] = {
               TRUE, { FALSE, TRUE }, { LtrScan,                 LtrProgram}},
   { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, AtomicOp),
               TRUE, { TRUE,  TRUE }, { NULL,                    AtomicOpProgram}},
+  { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, ExtendedTag),
+              TRUE, { TRUE,  TRUE }, { NULL,                    ExtendedTagProgram } }
 };
 
 /**
@@ -245,6 +247,9 @@ PcieNotifyDeviceState (
   PcieDeviceState.CompletionTimeout   = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl2.Uint16 & 0x1F;
   PcieDeviceState.AtomicOp            = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl2.Bits.AtomicOpRequester;
   PcieDeviceState.Ltr                 = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl2.Bits.LtrMechanism;
+  PcieDeviceState.ExtendedTag         =
+                  (UINT8)((PciIoDevice->PciExpressCapability.DeviceControl2.Bits.TenBitTagRequesterEnable << 1)
+                           | PciIoDevice->PciExpressCapability.DeviceControl.Bits.ExtendedTagField);
 
   return mPciePlatformProtocol->NotifyDeviceState (
                                   mPciePlatformProtocol,
