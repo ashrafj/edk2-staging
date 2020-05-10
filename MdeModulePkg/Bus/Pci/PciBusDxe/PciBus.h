@@ -269,7 +269,7 @@ struct _PCI_IO_DEVICE {
   // For PCI Express Capability List Structure
   //
   UINT8                                     PciExpressCapabilityOffset;
-  PCI_CAPABILITY_PCIEXP                     PciExpressCapabilityStructure;
+  PCI_CAPABILITY_PCIEXP                     PciExpressCapability;
   //
   // For SR-IOV
   //

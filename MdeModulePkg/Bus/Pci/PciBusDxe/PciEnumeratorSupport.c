@@ -2162,7 +2162,7 @@ CreatePciIoDevice (
                   EfiPciIoWidthUint8,
                   PciIoDevice->PciExpressCapabilityOffset,
                   sizeof (PCI_CAPABILITY_PCIEXP) / sizeof (UINT8),
-                  &PciIoDevice->PciExpressCapabilityStructure
+                  &PciIoDevice->PciExpressCapability
                   );
   }
 
