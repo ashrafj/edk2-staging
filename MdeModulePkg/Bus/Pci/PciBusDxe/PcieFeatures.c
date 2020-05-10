@@ -117,3 +117,53 @@ MaxPayloadSizeProgram (
   return EFI_SUCCESS;
 }
 
+/**
+  Program the PCIe Device Control register Max. Read Request Size field per platform policy.
+
+  @param PciDevice              A pointer to the PCI_IO_DEVICE instance.
+  @param Level                  The level of the PCI device in the heirarchy.
+                                Level of root ports is 0.
+  @param Context                Pointer to feature specific context.
+
+  @retval EFI_SUCCESS           The data was read from or written to the PCI device.
+  @retval EFI_UNSUPPORTED       The address range specified by Offset, Width, and Count is not
+                                valid for the PCI configuration header of the PCI controller.
+  @retval EFI_INVALID_PARAMETER Buffer is NULL or Width is invalid.
+**/
+EFI_STATUS
+MaxReadRequestSizeProgram (
+  IN PCI_IO_DEVICE *PciDevice,
+  IN UINTN         Level,
+  IN VOID          **Context
+  )
+{
+  ASSERT (*Context == NULL);
+
+  if (PciDevice->DeviceState.MaxReadRequestSize == EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE) {
+    return EFI_SUCCESS;
+  }
+  if (PciDevice->DeviceState.MaxReadRequestSize == EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO) {
+    PciDevice->DeviceState.MaxReadRequestSize = (UINT8) PciDevice->PciExpressCapability.DeviceControl.Bits.MaxPayloadSize;
+  }
+
+  if (PciDevice->PciExpressCapability.DeviceControl.Bits.MaxReadRequestSize != PciDevice->DeviceState.MaxReadRequestSize) {
+    DEBUG ((
+      DEBUG_INFO, "  %a [%02d|%02d|%02d]: %x -> %x\n",
+      __FUNCTION__, PciDevice->BusNumber, PciDevice->DeviceNumber, PciDevice->FunctionNumber,
+      PciDevice->PciExpressCapability.DeviceControl.Bits.MaxReadRequestSize,
+      PciDevice->DeviceState.MaxReadRequestSize
+      ));
+    PciDevice->PciExpressCapability.DeviceControl.Bits.MaxReadRequestSize = PciDevice->DeviceState.MaxReadRequestSize;
+
+    return PciDevice->PciIo.Pci.Write (
+                                  &PciDevice->PciIo,
+                                  EfiPciIoWidthUint16,
+                                  PciDevice->PciExpressCapabilityOffset
+                                  + OFFSET_OF (PCI_CAPABILITY_PCIEXP, DeviceControl),
+                                  1,
+                                  &PciDevice->PciExpressCapability.DeviceControl.Uint16
+                                  );
+  }
+  return EFI_SUCCESS;
+}
+

@@ -54,6 +54,8 @@ PCIE_FEATURE_ENTRY  mPcieFeatures[] = {
   //
   { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, MaxPayloadSize),
               TRUE, { TRUE,  TRUE }, { MaxPayloadSizeScan,      MaxPayloadSizeProgram } },
+  { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, MaxReadRequestSize),
+              TRUE, { TRUE,  TRUE }, { NULL,                    MaxReadRequestSizeProgram } },
 };
 
 /**
@@ -227,6 +229,7 @@ PcieNotifyDeviceState (
   CopyMem (&PcieDeviceState, &PciIoDevice->DeviceState, sizeof (PciIoDevice->DeviceState));
 
   PcieDeviceState.MaxPayloadSize      = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl.Bits.MaxPayloadSize;
+  PcieDeviceState.MaxReadRequestSize  = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl.Bits.MaxReadRequestSize;
   return mPciePlatformProtocol->NotifyDeviceState (
                                   mPciePlatformProtocol,
                                   PciIoDevice->Handle,
