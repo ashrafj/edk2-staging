@@ -793,3 +793,101 @@ ExtendedTagProgram (
   return EFI_SUCCESS;
 }
 
+/**
+  Program PCIe feature CommonClockConfiguration.
+
+  @param PciIoDevice            A pointer to the PCI_IO_DEVICE.
+  @param Level                  The level of the PCI device in the heirarchy.
+                                Level of root ports is 0.
+  @param Context                Pointer to feature specific context.
+
+  @retval EFI_SUCCESS           setup of PCI feature CommonClockConfiguration is successful.
+  @retval EFI_UNSUPPORTED       The address range specified by Offset, Width, and Count is not
+                                valid for the PCI configuration header of the PCI controller.
+  @retval EFI_INVALID_PARAMETER Buffer is NULL or Width is invalid.
+**/
+EFI_STATUS
+CommonClockConfigurationProgram (
+  IN  PCI_IO_DEVICE *PciIoDevice,
+  IN  UINTN         Level,
+  IN  VOID          **Context
+  )
+{
+  EFI_STATUS                    Status;
+
+  //
+  // no other options about the Common Clock Configuraton shall be accepted besides
+  // AUTO and NOT_APPLICABLE
+  //
+  if (PciIoDevice->DeviceState.CommonClockConfiguration != EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO &&
+      PciIoDevice->DeviceState.CommonClockConfiguration != EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE) {
+    return EFI_INVALID_PARAMETER;
+  }
+  //
+  // skip programming of the Common Clock COnfiguration in the Link Cnntrol register
+  //
+  if (PciIoDevice->DeviceState.CommonClockConfiguration == EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE) {
+    return EFI_SUCCESS;
+  }
+
+  DEBUG ((
+    DEBUG_INFO, "  %a [%02d|%02d|%02d]: Status = %x\n",
+    __FUNCTION__, PciIoDevice->BusNumber, PciIoDevice->DeviceNumber, PciIoDevice->FunctionNumber,
+    PciIoDevice->PciExpressCapability.LinkStatus.Bits.SlotClockConfiguration
+    ));
+
+  //
+  // the Common Clock Configuration of the device needs to be aligned with its
+  // Link Status register SlotClockConfiguration value
+  //
+  if (PciIoDevice->PciExpressCapability.LinkStatus.Bits.SlotClockConfiguration !=
+      PciIoDevice->PciExpressCapability.LinkControl.Bits.CommonClockConfiguration) {
+    DEBUG ((
+      DEBUG_INFO, "  %a [%02d|%02d|%02d]: %x -> %x.\n",
+      __FUNCTION__, PciIoDevice->BusNumber, PciIoDevice->DeviceNumber, PciIoDevice->FunctionNumber,
+      PciIoDevice->PciExpressCapability.LinkControl.Bits.CommonClockConfiguration,
+      PciIoDevice->PciExpressCapability.LinkStatus.Bits.SlotClockConfiguration
+      ));
+    PciIoDevice->PciExpressCapability.LinkControl.Bits.CommonClockConfiguration =
+        PciIoDevice->PciExpressCapability.LinkStatus.Bits.SlotClockConfiguration;
+    //
+    // retrain the link at Root Port level, if its link is active
+    //
+    if (Level == 1 && PciIoDevice->PciExpressCapability.LinkStatus.Bits.DataLinkLayerLinkActive) {
+      PciIoDevice->PciExpressCapability.LinkControl.Bits.RetrainLink = 1;
+    }
+
+    Status = PciIoDevice->PciIo.Pci.Write (
+                                    &PciIoDevice->PciIo,
+                                    EfiPciIoWidthUint16,
+                                    PciIoDevice->PciExpressCapabilityOffset
+                                    + OFFSET_OF (PCI_CAPABILITY_PCIEXP, LinkControl),
+                                    1,
+                                    &PciIoDevice->PciExpressCapability.LinkControl.Uint16
+                                    );
+    if (EFI_ERROR(Status)) {
+      return Status;
+    }
+    //
+    // wait till link retrain is complete
+    //
+    if (Level == 1 && PciIoDevice->PciExpressCapability.LinkStatus.Bits.DataLinkLayerLinkActive) {
+      do {
+        Status = PciIoDevice->PciIo.Pci.Read (
+                                        &PciIoDevice->PciIo,
+                                        EfiPciIoWidthUint16,
+                                        PciIoDevice->PciExpressCapabilityOffset
+                                        + OFFSET_OF (PCI_CAPABILITY_PCIEXP, LinkStatus),
+                                        1,
+                                        &PciIoDevice->PciExpressCapability.LinkStatus.Uint16
+                                        );
+        if (EFI_ERROR(Status)) {
+          return Status;
+        }
+      } while (PciIoDevice->PciExpressCapability.LinkStatus.Bits.LinkTraining);
+    }
+  }
+
+  return EFI_SUCCESS;
+}
+

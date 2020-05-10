@@ -52,6 +52,8 @@ PCIE_FEATURE_ENTRY  mPcieFeatures[] = {
   //
   // Individual PCIE features
   //
+  { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, CommonClockConfiguration),
+              TRUE, { TRUE,  FALSE },{ NULL,                    CommonClockConfigurationProgram } },
   { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, MaxPayloadSize),
               TRUE, { TRUE,  TRUE }, { MaxPayloadSizeScan,      MaxPayloadSizeProgram } },
   { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, MaxReadRequestSize),
@@ -250,6 +252,8 @@ PcieNotifyDeviceState (
   PcieDeviceState.ExtendedTag         =
                   (UINT8)((PciIoDevice->PciExpressCapability.DeviceControl2.Bits.TenBitTagRequesterEnable << 1)
                            | PciIoDevice->PciExpressCapability.DeviceControl.Bits.ExtendedTagField);
+  PcieDeviceState.CommonClockConfiguration = (UINT8)
+                                        PciIoDevice->PciExpressCapability.LinkControl.Bits.CommonClockConfiguration;
 
   return mPciePlatformProtocol->NotifyDeviceState (
                                   mPciePlatformProtocol,

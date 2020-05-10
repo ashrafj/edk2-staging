@@ -128,4 +128,21 @@ ExtendedTagProgram (
   IN  VOID          **Context
   );
 
+/**
+  Program CommonClockConfiguration.
+
+  @param PciIoDevice  A pointer to the PCI_IO_DEVICE.
+  @param Level        The level of the PCI device in the heirarchy.
+                      Level of root ports is 0.
+  @param Context      Pointer to feature specific context.
+
+  @retval EFI_SUCCESS setup of PCI feature ExtendedTag is successful.
+**/
+EFI_STATUS
+CommonClockConfigurationProgram (
+  IN  PCI_IO_DEVICE *PciIoDevice,
+  IN  UINTN         Level,
+  IN  VOID          **Context
+  );
+
 #endif
