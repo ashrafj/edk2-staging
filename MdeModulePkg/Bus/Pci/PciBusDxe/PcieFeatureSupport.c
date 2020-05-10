@@ -62,6 +62,8 @@ PCIE_FEATURE_ENTRY  mPcieFeatures[] = {
               TRUE, { TRUE,  TRUE }, { NULL,                    NoSnoopProgram } },
   { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, CompletionTimeout),
               TRUE, { TRUE,  TRUE }, { NULL,                    CompletionTimeoutProgram}},
+  { OFFSET_OF (EFI_PCI_EXPRESS_PLATFORM_POLICY, Ltr),
+              TRUE, { FALSE, TRUE }, { LtrScan,                 LtrProgram}},
 };
 
 /**
@@ -239,6 +241,7 @@ PcieNotifyDeviceState (
   PcieDeviceState.RelaxedOrdering     = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl.Bits.RelaxedOrdering;
   PcieDeviceState.NoSnoop             = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl.Bits.NoSnoop;
   PcieDeviceState.CompletionTimeout   = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl2.Uint16 & 0x1F;
+  PcieDeviceState.Ltr                 = (UINT8)PciIoDevice->PciExpressCapability.DeviceControl2.Bits.LtrMechanism;
 
   return mPciePlatformProtocol->NotifyDeviceState (
                                   mPciePlatformProtocol,

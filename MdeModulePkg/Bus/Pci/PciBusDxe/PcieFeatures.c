@@ -358,3 +358,197 @@ CompletionTimeoutProgram (
   return EFI_SUCCESS;
 }
 
+/**
+  disable LTR policy of the device. If bridge device than disable LTR policy of
+  all its child devices.
+
+  @param Bridge     A pointer to the PCI_IO_DEVICE
+**/
+STATIC
+VOID
+DisableLtrPolicy (
+  IN  PCI_IO_DEVICE *Bridge
+  )
+{
+  LIST_ENTRY            *Link;
+  PCI_IO_DEVICE         *PciIoDevice;
+
+  Bridge->DeviceState.Ltr = FALSE;
+
+  for ( Link = GetFirstNode (&Bridge->ChildList)
+      ; !IsNull (&Bridge->ChildList, Link)
+      ; Link = GetNextNode (&Bridge->ChildList, Link)
+  ) {
+    PciIoDevice = PCI_IO_DEVICE_FROM_LINK (Link);
+    if (PciIoDevice->IsPciExp) {
+      DisableLtrPolicy (PciIoDevice);
+    }
+  }
+}
+
+/**
+  Update the LTR for each level of devices.
+
+  @param Result     A pointer to the BOOLEAN
+  @param Ltr        value TRUE or FALSE.
+**/
+STATIC
+VOID
+LtrOr (
+  IN OUT  BOOLEAN   *Result,
+  IN      BOOLEAN   Ltr
+)
+{
+  ASSERT (Result != NULL);
+  ASSERT (*Result == 0xFF || *Result == TRUE || *Result == FALSE);
+  if (*Result == 0xFF) {
+    //
+    // Initialize Result when meeting the first device in the Level.
+    //
+    *Result = Ltr;
+  } else {
+    //
+    // Save the "OR" result of LTR of all devices in this Level.
+    //
+    *Result = (*Result || Ltr);
+  }
+}
+
+/**
+  Scan the devices to finalize the LTR settings of each device.
+
+  The scan needs to be done in post-order.
+
+  @param PciIoDevice            A pointer to the PCI_IO_DEVICE.
+  @param Level                  The level of the PCI device in the heirarchy.
+                                Level of root ports is 0.
+  @param Context                Pointer to feature specific context.
+
+
+  @retval EFI_SUCCESS           setup of PCI feature LTR is successful.
+**/
+EFI_STATUS
+LtrScan (
+  IN  PCI_IO_DEVICE *PciIoDevice,
+  IN  UINTN         Level,
+  IN  VOID          **Context
+  )
+{
+  BOOLEAN           *Ltr;
+  ASSERT (Level <= PCI_MAX_BUS);
+  //ASSERT (Context != NULL);
+
+  // LTR of a parent (certain bridge) in level N is enabled when any child in
+  // level N + 1 enables LTR.
+  //
+  // Because the devices are enumerated in post-order (children-then-parent),
+  // we could allocate one BOOLEAN in Context to save the "OR" result of LTR
+  // enable status of all children in a certain level. LTR of parent is set
+  // when the "OR" result is TRUE.
+  //
+  // Because the max level cannot exceed the max PCI bus number 256, allocating
+  // a BOOLEAN array of 256 elements should be enough.
+  //
+  Ltr = (BOOLEAN *) (*Context);
+  if (Ltr == NULL) {
+    Ltr = AllocatePool (sizeof (BOOLEAN) * (PCI_MAX_BUS + 1));
+    SetMem (Ltr, sizeof (BOOLEAN) * (PCI_MAX_BUS + 1), 0xFF);
+    *Context = Ltr;
+  }
+
+  DEBUG ((
+    DEBUG_INFO, "  %a [%02d|%02d|%02d]: Capability = %x.\n",
+    __FUNCTION__, PciIoDevice->BusNumber, PciIoDevice->DeviceNumber, PciIoDevice->FunctionNumber,
+    PciIoDevice->PciExpressCapability.DeviceCapability2.Bits.LtrMechanism
+    ));
+  //
+  // Disable LTR if the device doesn't support. In case of bridge device disable
+  // all its child devices.
+  // Even if the platform forces the bridge device to disable the LTR, all its
+  // child devices has to be forced to disable LTR because the child cannot send
+  // the LTR messages to parent bridge whose LTR is disabled.
+  //
+  if (!PciIoDevice->PciExpressCapability.DeviceCapability2.Bits.LtrMechanism
+      || PciIoDevice->DeviceState.Ltr == FALSE) {
+    DisableLtrPolicy (PciIoDevice);
+  }
+
+  //
+  // If the policy is AUTO or NOT_APPLICABLE for a certain device, only enable LTR
+  // when any of its children's LTR is enabled.
+  // Note:
+  //  It's platform's responsibility to make sure consistent policy is returned.
+  //  Inconsistent policy means Bridge's LTR is set to FALSE while child device's LTR is
+  //  set to TRUE in platform policy.
+  //
+  if ((PciIoDevice->DeviceState.Ltr != TRUE) && (PciIoDevice->DeviceState.Ltr != FALSE)) {
+    ASSERT (PciIoDevice->DeviceState.Ltr == EFI_PCI_EXPRESS_DEVICE_POLICY_AUTO ||
+            PciIoDevice->DeviceState.Ltr == EFI_PCI_EXPRESS_DEVICE_POLICY_NOT_APPLICABLE);
+
+    if ((Level < PCI_MAX_BUS) && (Ltr[Level + 1] != 0xFF)) {
+      //
+      // LTR of a parent is the "OR" result of LTR of all children.
+      //
+      PciIoDevice->DeviceState.Ltr = Ltr[Level + 1];
+    }
+  }
+
+  if ((PciIoDevice->DeviceState.Ltr == TRUE) || (PciIoDevice->DeviceState.Ltr == FALSE)) {
+    LtrOr (&Ltr[Level], PciIoDevice->DeviceState.Ltr);
+  }
+
+  //
+  // Reset the LTR status of Level + 1 because Ltr[Level + 1] will be used by another sub-tree.
+  //
+  Ltr[Level + 1] = 0xFF;
+
+  return EFI_SUCCESS;
+}
+
+/**
+  Program the LTR settings of each device.
+
+  The program needs to be done in pre-order per the PCIe spec requirement
+
+  @param PciIoDevice            A pointer to the PCI_IO_DEVICE.
+  @param Level                  The level of the PCI device in the heirarchy.
+                                Level of root ports is 0.
+  @param Context                Pointer to feature specific context.
+
+
+  @retval EFI_SUCCESS           setup of PCI feature LTR is successful.
+  @retval EFI_UNSUPPORTED       The address range specified by Offset, Width, and Count is not
+                                valid for the PCI configuration header of the PCI controller.
+  @retval EFI_INVALID_PARAMETER Buffer is NULL or Width is invalid.
+**/
+EFI_STATUS
+LtrProgram (
+  IN  PCI_IO_DEVICE *PciIoDevice,
+  IN  UINTN         Level,
+  IN  VOID          **Context
+  )
+{
+  if ((PciIoDevice->DeviceState.Ltr == TRUE) || (PciIoDevice->DeviceState.Ltr == FALSE)) {
+    if (PciIoDevice->DeviceState.Ltr != PciIoDevice->PciExpressCapability.DeviceControl2.Bits.LtrMechanism) {
+
+      DEBUG ((
+        DEBUG_INFO, "  %a [%02d|%02d|%02d]: %x -> %x.\n",
+        __FUNCTION__, PciIoDevice->BusNumber, PciIoDevice->DeviceNumber, PciIoDevice->FunctionNumber,
+        PciIoDevice->PciExpressCapability.DeviceControl2.Bits.LtrMechanism,
+        PciIoDevice->DeviceState.Ltr
+        ));
+
+      return PciIoDevice->PciIo.Pci.Write (
+                                    &PciIoDevice->PciIo,
+                                    EfiPciIoWidthUint16,
+                                    PciIoDevice->PciExpressCapabilityOffset
+                                    + OFFSET_OF (PCI_CAPABILITY_PCIEXP, DeviceControl2),
+                                    1,
+                                    &PciIoDevice->PciExpressCapability.DeviceControl2.Uint16
+                                    );
+    }
+  }
+
+  return EFI_SUCCESS;
+}
+
