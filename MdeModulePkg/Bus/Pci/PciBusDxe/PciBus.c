@@ -284,10 +284,6 @@ PciBusDriverBindingStart (
           (VOID **) &gPciOverrideProtocol
           );
   }
-  //
-  // get the PCI Express Protocol or the PCI Express Override Protocol
-  //
-  GetPciExpressProtocol ();
 
   if (mIoMmuProtocol == NULL) {
     gBS->LocateProtocol (

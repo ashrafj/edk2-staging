@@ -27,6 +27,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/PciOverride.h>
 #include <Protocol/PciEnumerationComplete.h>
 #include <Protocol/IoMmu.h>
+#include <Protocol/PciExpressOverride.h>
+#include <Protocol/PciExpressPlatform.h>
 
 #include <Library/DebugLib.h>
 #include <Library/UefiDriverEntryPoint.h>
@@ -42,8 +44,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/PeImage.h>
 #include <IndustryStandard/Acpi.h>
-#include <Protocol/PciExpressOverride.h>
-#include <Protocol/PciExpressPlatform.h>
+
 
 typedef struct _PCI_IO_DEVICE              PCI_IO_DEVICE;
 typedef struct _PCI_BAR                    PCI_BAR;
@@ -81,8 +82,6 @@ typedef enum {
 #include "PciPowerManagement.h"
 #include "PciHotPlugSupport.h"
 #include "PciLib.h"
-#include "PciPlatformSupport.h"
-#include "PciFeatureSupport.h"
 
 #define VGABASE1  0x3B0
 #define VGALIMIT1 0x3BB
@@ -287,19 +286,6 @@ struct _PCI_IO_DEVICE {
   // This field is used to support this case.
   //
   UINT16                                    BridgeIoAlignment;
-  //
-  // PCI Express features setup flags
-  //
-  UINT8                                     SetupMPS;
-  UINT8                                     SetupMRRS;
-  PCI_FEATURE_POLICY                        SetupRO;
-  PCI_FEATURE_POLICY                        SetupNS;
-  PCI_FEATURE_POLICY                        SetupCTO;
-  EFI_PCI_EXPRESS_ATOMIC_OP                 SetupAtomicOp;
-  BOOLEAN                                   SetupLtr;
-  UINT8                                     SetupExtTag;
-  UINT8                                     SetupAspm;
-  EFI_PCI_EXPRESS_COMMON_CLOCK_CFG          SetupCcc;
 };
 
 #define PCI_IO_DEVICE_FROM_PCI_IO_THIS(a) \

@@ -57,12 +57,6 @@
   PciCommand.h
   PciIo.h
   PciBus.h
-  PciFeatureSupport.c
-  PciFeatureSupport.h
-  PciPlatformSupport.c
-  PciPlatformSupport.h
-  PciExpressFeatures.c
-  PciExpressFeatures.h
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -97,8 +91,8 @@
   gEfiLoadFile2ProtocolGuid                       ## SOMETIMES_PRODUCES
   gEdkiiIoMmuProtocolGuid                         ## SOMETIMES_CONSUMES
   gEfiLoadedImageDevicePathProtocolGuid           ## CONSUMES
-  gEfiPciExpressPlatformProtocolGuid                     ## SOMETIMES_CONSUMES
-  gEfiPciExpressOverrideProtocolGuid                     ## SOMETIMES_CONSUMES
+  gEfiPciExpressPlatformProtocolGuid              ## SOMETIMES_CONSUMES
+  gEfiPciExpressOverrideProtocolGuid              ## SOMETIMES_CONSUMES
 
 
 [FeaturePcd]
